@@ -177,14 +177,14 @@ int main (int argc, char *argv[])
 	if (argc != 3){
 		puts("doing SPR...");
 		if( argc < 2 ){
-			spr( tree, root->left->left, root->right->left );
+			tmp = spr( tree, root->left->left, root->right->left );
 		}else if (argc == 4){
-			spr( tree, spr_searchbyname(root, argv[2]), 
+			tmp = spr( tree, spr_searchbyname(root, argv[2]), 
 			     spr_searchbyname(root, argv[3]));
 			// This is lame because internal node names are weird
 		}
 		// newickprint( root );
-		puts("");
+		puts(tmp ? "SPR succeeded" : "SPR failed");
 		treeprint( tree->root );
 		newickprint( tree->root );
 	}
