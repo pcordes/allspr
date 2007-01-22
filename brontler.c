@@ -181,6 +181,7 @@ int main (int argc, char *argv[])
 		}else if (argc == 4){
 			spr( tree, spr_searchbyname(root, argv[2]), 
 			     spr_searchbyname(root, argv[3]));
+			// This is lame because internal node names are weird
 		}
 		// newickprint( root );
 		puts("");

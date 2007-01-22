@@ -36,13 +36,13 @@ void inorder(const struct spr_node *p, const void (*func)(const struct spr_node 
 
 struct spr_node *spr_treesearchbyname( const struct spr_tree *t, const char *s )
 {
-// binary search the nodelist...
+// FIXME: binary search the nodelist...
 	return NULL;
 }
 
 struct spr_node *spr_treesearch( const struct spr_tree *t, const struct spr_node *query )
 {
-// search the node list
+// FIXME: search the node list
 	return NULL;
 }
 

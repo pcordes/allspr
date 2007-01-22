@@ -112,10 +112,11 @@ static inline int next_prime (int i)
 	return i;
 }
 
+static void primesetup(int k);
+
 static inline int is_prime(int p){
 //#ifndef NDEBUG
 	if (p > maxptest){ // TODO: better error handling?
-		static void primesetup(int k);
 		fprintf(stderr,"spr debug: sieving more primes. old max %d",
 			maxptest);
 		primesetup( p*2 );
@@ -145,6 +146,10 @@ static void primesetup(int k){
 }
 
 /******************** Linear Congruential Generator setup ************/
+/* to generate all possible SPRs in a pseudo-random order, we generate
+ * all the numbers between 0 and the number of possible SPRs once each
+ * without repetition using an LCG of the form: x_n+1 = x_n*a + c mod m.
+ */
 /* 
  * Knuth: TAOCP 3.2.1: ex 2: if a and m are relatively prime,
  * the number X_0 will always appear in the period.  (will return to start?)
@@ -166,7 +171,7 @@ static void primesetup(int k){
  * which is the same as a=1.  It's not exactly random, but it does still
  * mix up which SPRs are done.
  *
- * TODO: take advantage of the fact that maxval = floor(sqrt(maxval))*ceil(sqrt...))
+ * TODO: take advantage of the fact that maxval = floor(sqrt(maxval))*ceil(sqrt(maxval))
  *  could do that, but then the code would be less general-purpose
  * successfully brute-force tested for maxval=1..1000.
  */
