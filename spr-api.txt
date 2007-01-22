@@ -1,0 +1,8 @@
+The library needs to find out some info about a tree to do anything, so
+you have to call spr_init() first.
+
+ The functions aren't re-entrant, even though the API is written without
+internal state.  A future version could be re-entrant, but this one isn't.
+You can have multiple trees being spr()ed at once, just make sure that you
+don't have two calls into the library from different threads at the same time.
+(esp. to spr_init(), but there might be other functions that aren't safe.)
