@@ -31,6 +31,9 @@ struct spr_node{
 */
 };
 
+/* a linear congruential generator is used to generate all integers 
+ * between 0 and N without repetition, in a pseudo-random order,
+ * to determine the order to try SPRs in */
 struct lcg {
 	unsigned int state;
 	unsigned int a, c, m;
@@ -44,9 +47,6 @@ struct spr_tree{
 	struct spr_node *unspr_dest;
 	struct spr_node *unspr_src;  // could be an index into nodelist
 
-/* a linear congruential generator is used to generate all integers 
- * between 0 and N without repetition, in a pseudo-random order,
- * to determine the order to try SPRs in */
 	struct lcg lcg;
 
 	void (*callback)(struct spr_node *);
