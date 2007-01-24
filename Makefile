@@ -9,7 +9,7 @@ LOADLIBES = -lm
 .PHONY: all
 all: brontler liballspr.a
 
-brontler : brontler.o -lallspr
+brontler : brontler.o liballspr.a
 liballspr.a: spr.o init.o io.o utils.o
 	ar r $@ $^
 #	$(CC) -shared $(CFLAGS) $(LDFLAGS) $(LOADLIBES) -o $@ $^
