@@ -133,3 +133,15 @@ struct spr_node *spr_searchbyname( const struct spr_node *HAYSTACK, const char *
 // These will be faster (once they're written)
 struct spr_node *spr_treesearchbyname(const struct spr_tree *t, const char *s );
 struct spr_node *spr_treesearch(const struct spr_tree *t, const struct spr_node *query );
+
+
+#ifdef __GNUC__
+static inline struct spr_node *spr_newnode( struct spr_node *parent,struct spr_node *left, struct spr_node *right, typeof(parent->data) data)
+{
+  struct spr_node *p;
+  p = xmalloc(sizeof(*p));
+  p->parent=parent; p->left=left; p->right=right;
+  p->data=data;
+  return p;
+}
+#endif
