@@ -13,9 +13,8 @@
 
 #include <assert.h>
 
-#define SPR_NODE_DATAPTR_TYPE struct spr_nodename
-#include "spr.h"
 #include "spr_private.h"
+#include "spr.h"
 
 /* format of sprmap (transposed):
 01 0122 012333  src

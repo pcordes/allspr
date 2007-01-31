@@ -8,10 +8,8 @@
 #include <string.h>
 #include <assert.h>
 
-#define SPR_NODE_DATAPTR_TYPE struct spr_nodename
-#include "spr.h"
 #include "spr_private.h"
-
+#include "spr.h"
 
 
 /***** Randomness functions *****/

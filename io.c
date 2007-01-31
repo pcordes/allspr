@@ -8,15 +8,8 @@
 #include <string.h>
 #include <assert.h>
 
-#define nom name
-#include "../procov/mynhmlg.h"
-
-//#define SPR_NODE_DATAPTR_TYPE struct spr_nodename
-#define SPR_NODE_DATAPTR_TYPE struct noeud
-//#define name nom
-
-#include "spr.h"
 #include "spr_private.h"
+#include "spr.h"
 
 // half-assed newick parser is in the front-end brontler.c.  A better parser
 // will go here...
