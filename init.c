@@ -327,9 +327,8 @@ static void initspr( struct spr_tree *state, struct spr_node *tree )
 		}
 	}
 
-	nodelist = xrealloc( nodelist, n*sizeof(*nodelist) );
+	state->nodelist = xrealloc( nodelist, n*sizeof(*nodelist) );
 	state->nodes = n;	// taxa were counted as we went
-	state->nodelist = nodelist; // could have moved on realloc
 }
 
 
