@@ -177,7 +177,8 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 		){
 		return FALSE;
 	}
-	// why is dest == root not useful?...
+	/* src or dest == root is not useful because we actually deal
+	 * with internal parent nodes, which the root doesn't have. */
 	/* FIXME: if( src is too close to dest ) return; more checking */
 
 	tree->unspr_src = src;
