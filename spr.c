@@ -145,30 +145,30 @@ static int dospr( struct spr_node *src, struct spr_node *dest )
 	return TRUE;
 }
 
-/*
-static int unspr( struct spr_tree *tree, int sprnum )
-{
-	return dospr( tree->nodelist[ sprmap[sprnum][0] ],
-		      tree->unspr_dest );
-}
-*/
 
-/* A wrapper that does the checking for valid SPRs.
- * everything except unspr should go through this */
+int spr_unspr( struct spr_tree *tree )
+{
+	return spr( tree, NULL, NULL );
+}
+
+
+/* A wrapper returns the tree to its original topology if needed, then 
+ * returns TRUE if the requested SPR was done, else FALSE.  (except when
+ * src=dest=NULL, return TRUE if the tree was modified back to the original.)
+ * some of the allowed-spr checks are duplicated in dospr().
+ */
 int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 {
-	int tmp;
+	int tmp, unspr_success=FALSE;
 
 	if (tree->unspr_dest){	// back to starting tree
-		int unspr_success = dospr( tree->unspr_src, tree->unspr_dest );
+		unspr_success = dospr( tree->unspr_src, tree->unspr_dest );
 		printf("  unspr back to: "); //DEBUG
 		newickprint( spr_findroot(tree->root) );
 		assert( unspr_success );
 		tree->unspr_dest = NULL;
-//		if( !unspr_success ){
-//			fprintf(stderr, "unspr failed: src=");
-//		}
 	}
+	if (!src && !dest && unspr_success) return TRUE;
 
 	if ( !(src->parent) || !(dest->parent) ||
 	     src->parent == dest->parent ||  // don't switch siblings

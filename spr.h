@@ -119,6 +119,8 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
 
 /* return 0 for all done, else a positive SPR number */
 int spr_next_spr( struct spr_tree *tree );
+/* return the tree to its original topology, without doing a new SPR */
+int spr_unspr( struct spr_tree *tree );
 
 // IO
 char *newick( const struct spr_node *subtree ); // return a malloc()ed string. no bl
