@@ -128,6 +128,9 @@ static int dospr( struct spr_node *src, struct spr_node *dest )
 	if (!sp) return FALSE;  // can't SPR the root
 	if (spr_isancestor(src, dest)) return FALSE;
 
+	// This can result in dest->parent having two pointers to sp,
+	// resulting in getting the mirror image unspr, for example with cox2
+	// spr number 68 (int2->cox2_trybb), because isrightchild will be true!
 	if (dp) *meinparent(dest) = sp;
 	dest->parent = sp;
 
@@ -187,8 +190,10 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 
 	tmp = dospr( src, dest );
 	if (tmp){
-		if (tree->root->parent)
+		if (tree->root->parent){
 			tree->root = spr_findroot( dest );
+			fputs("allspr: tree has new root!\n", stderr);
+		}
 		// DEBUG
 		printf( "  did spr %s -> %s\n", src->data->name, dest->data->name);
 	}else
