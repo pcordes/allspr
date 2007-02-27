@@ -214,7 +214,9 @@ int spr_next_spr( struct spr_tree *tree )
 	do{  // try SPRs until we find a legal one, or loop to beginning
 		sprnum = lcg( &tree->lcg );
 		tmp = spr(tree, tree->nodelist[ sprmap[sprnum][0] ],
-				tree->nodelist[ sprmap[sprnum][1] ]);
+			        tree->nodelist[ sprmap[sprnum][1] ]);
+		if (tmp && tree->dups)
+			tmp=spr_add_dup(tree, tree->root);
 	}while( !tmp && sprnum != tree->lcg.startstate );
 
 	if (tree->lcg.startstate == sprnum){

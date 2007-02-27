@@ -334,7 +334,7 @@ static void initspr( struct spr_tree *state, struct spr_node *tree )
 
 /* return malloc()ed library state, or NULL on error */
 struct spr_tree *
-spr_init( struct spr_node *root, void (*callback)(struct spr_node *) )
+spr_init( struct spr_node *root, void (*callback)(struct spr_node *), int dup )
 {
 	int nnodes;
 	struct spr_tree *tree;
@@ -357,6 +357,12 @@ spr_init( struct spr_node *root, void (*callback)(struct spr_node *) )
 
 	tree->callback = callback;
 	tree->unspr_dest = NULL;
+
+	if(dup) tree->dups = NULL;
+	else{
+		tree->dups = xmalloc(sizeof(*tree->dups));
+		assert( spr_add_dup( tree, tree->root ) );
+	}
 
 	return tree;
  out_err:

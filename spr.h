@@ -32,13 +32,11 @@ struct spr_node{
 #else
 	void *data;
 #endif
+};
 
-/* Union declaration makes things too clumsy :(
-	union {
-		struct spr_nodename *def;
-		void *custom;
-	} data;
-*/
+struct spr_duplist{
+	struct spr_node *tree;
+	struct spr_duplist *next;
 };
 
 /* a linear congruential generator is used to generate all integers 
@@ -56,6 +54,7 @@ struct spr_tree{
 //	struct spr_node **nodesbyname;
 	struct spr_node *unspr_dest;
 	struct spr_node *unspr_src;  // could be an index into nodelist
+	struct spr_duplist *dups;
 
 	struct lcg lcg;
 
@@ -101,7 +100,7 @@ void *xrealloc (void *p, size_t n);
  * callback is a function to be called on nodes that undergo an SPR.
  * the return value is a pointer to a malloc()ed struct holding info about the
  * tree, such as number of nodes, a pointer to the root, etc. */
-struct spr_tree *spr_init( struct spr_node *tree, void (*callback)(struct spr_node *) );
+struct spr_tree *spr_init( struct spr_node *tree, void (*callback)(struct spr_node *), int allow_dups );
 
 void spr_statefree( struct spr_tree *p ); /* use _instead_ of free( p ). 
    * frees just the struct spr_tree and related stuff, not the tree itself */
@@ -121,6 +120,15 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
 int spr_next_spr( struct spr_tree *tree );
 /* return the tree to its original topology, without doing a new SPR */
 int spr_unspr( struct spr_tree *tree );
+
+// duplicate checking
+/* add a tree topology to the dup list (copies the tree).
+ * ->data pointers in nodes must be unique
+ * return: TRUE if added ok (implies not already present)
+ * FALSE if a dup of a tree already there, so not added. */
+int spr_add_dup( struct spr_tree *tree, struct spr_node *root );
+/* pointer to root of dup tree, or NULL if not a dup. */
+struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root );
 
 // IO
 char *newick( const struct spr_node *subtree ); // return a malloc()ed string. no bl
