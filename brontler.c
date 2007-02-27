@@ -1,5 +1,7 @@
 /* generate all SPRs of a given tree.
  * 2004/11/23.  Peter Cordes <peter@cordes.ca>
+ * license: GPLv2 or later
+ *
  * about the name: brontler appeared during a late-night game of Scrabble :)
  */
 
@@ -21,7 +23,8 @@ struct nodedata{
 /* request that spr_node.data be declared as a pointer to the struct
  * that we will actually store in it, instead of a void *
  * so we don't have to cast all the time */
-#define SPR_NODE_DATAPTR_TYPE struct nodedata
+//#define SPR_NODE_DATAPTR_TYPE struct nodedata
+#include <spr_private.h>
 #include <spr.h>
 
 
@@ -29,15 +32,17 @@ struct nodedata{
 struct spr_node *newnode(char *name)
 {
 	struct spr_node *p = xcalloc(1, sizeof(*p));
-	struct nodedata *d = xcalloc(1, sizeof(*d));
+//	struct nodedata *d = xcalloc(1, sizeof(*d));
+	typeof(p->data) d = xcalloc(1, sizeof(*d));
 
 	p->left=p->right=p->parent=NULL;
 	p->data = d;
 
-	d->name=name;
-	d->dirty=0;
-	d->bl=0;
-	d->dna=NULL;
+	if (name) strcpy (d->name, name);
+//	d->name=name;
+//	d->dirty=0;
+//	d->bl=0;
+//	d->dna=NULL;
 
 	return p;
 }
@@ -63,10 +68,11 @@ struct spr_node *parsenewick( char *str, int *len )
 	int tmp;
 //	char *name;
 	struct spr_node *node = newnode( NULL );
-	struct nodedata *data = node->data;
+	typeof (node->data) data = node->data;
 
 	if (*str == '('){  // internal node
-		data->name = strdup(nextname);
+//		data->name = strdup(nextname);
+		strcpy (data->name, nextname);
 		++*nextname;
 
 		node->left = parsenewick(str+1, &tmp);
@@ -92,7 +98,8 @@ struct spr_node *parsenewick( char *str, int *len )
 	}else if (strspn(str, " -_.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")){
 		// leaf node
 		tmp = 0;  // let scanf handle taxon names
-		if ( 1 > sscanf( str, " %a[^][)(:;, \f\n\r\t\v] %n", &data->name, len))
+//		if ( 1 > sscanf( str, " %a[^][)(:;, \f\n\r\t\v] %n", &data->name, len))
+		if ( 1 > sscanf( str, " %[^][)(:;, \f\n\r\t\v] %n", data->name, len))
 			fprintf(stderr, "bad newick element: \"%s\"\n",str);
 	}else{ // not a node!?
 		fprintf(stderr, "bad newick element, not an open paren or a taxon name: \"%s\"\n",str);
@@ -100,8 +107,10 @@ struct spr_node *parsenewick( char *str, int *len )
 		return NULL;
 	}
 
+	float dummy;
 	// internal and leaf nodes can have branch lengths
-	if( sscanf(str+*len, " : %f %n", &data->bl, &tmp) )
+//	if( sscanf(str+*len, " : %f %n", &data->bl, &tmp) )
+	if( sscanf(str+*len, " : %f %n", &dummy, &tmp) )
 		*len += tmp;
 
 	return node;
@@ -136,7 +145,7 @@ void sprtest(void)
 	newickprint(D);
 	treeprint(D);
 	
-	if (NULL == (libstate = spr_init( A, NULL ))){
+	if (NULL == (libstate = spr_init( A, NULL, 0 ))){
 		fputs("couldn't init libspr\n", stderr );
 		exit( 2 );
 	}
@@ -149,6 +158,11 @@ void sprtest(void)
 	spr_statefree( libstate );
 	spr_treefree( root, TRUE );
 }
+char *usage=
+"usage: brontler '(((a,b),(d,(e,f))),(c,d))' - do a fixed SPR\n"
+"brontler '(a,(c,b))' foo\t- dump all unique SPR\n"
+"brontler '(a,(c,b))' a c\t- SPR from a to c.  (internal nodes have capital letter names...)\n"
+"debugging output is always printed before doing anything\n";
 
 int main (int argc, char *argv[])
 {
@@ -162,13 +176,17 @@ int main (int argc, char *argv[])
 
 	// sprtest();
 
+	if(argc<2){
+		fputs(usage,stderr);
+		return 1;
+	}
 	// parse tree from cmdline and print it out
 	root = parsenewick( argv[1], &tmp ); // assert (tmp == strlen)...
 	assert( root == spr_findroot(root) );
 	treeprint( root );
 	newickprint( root );
 
-	if (NULL == (tree = spr_init( root, NULL ))){
+	if (NULL == (tree = spr_init( root, NULL, FALSE ))){
 		fputs("couldn't init libspr\n", stderr );
 		return 2;
 	}
@@ -193,6 +211,8 @@ int main (int argc, char *argv[])
 		i=0;
 		printf ("tree: taxa: %d, nodes: %d, possible SPRs <= %d\n",
 			tree->taxa, tree->nodes, tree->lcg.m );
+		tree->lcg.startstate=tree->lcg.state=16;
+		lcg(&tree->lcg);
 		while ( (tmp = spr_next_spr(tree)) ){
 //			treeprint( tree->root );
 			printf("%d: tree %d: ", ++i, tmp );
