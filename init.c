@@ -1,5 +1,6 @@
 /* subtree pruning-regrafting (spr) library
  * Peter Cordes <peter@cordes.ca>, Dalhousie University
+ * license: GPLv2 or later
  */
 
 /* setup routines that are called when giving the library a new tree */
@@ -23,7 +24,7 @@
  size 3: 4 6
  size 4: 6 12
 space required: sum( i=2..n, 2*(i-1) ) = n*(n-1).
-* TODO: src = 0 entries are useless (if the root is at 0). can't SPR the root!
+* src = root entries are useless, but the root can move from 0.
 * Putting entries with src=root at the end could make it possible to vary the length
 * of the array that is covered.  A length with repeated prime factors could be
 * chosen, so the LCG that generates a sequence covering the whole space will be more
@@ -38,6 +39,7 @@ int sprmapnodes = 0;
  * library would be re-entrant.
  */
 
+// only called from spr_init.
 static void grow_map( int nnodes )
 {
 	int i, n;	      // the number we're currently filling in
@@ -46,8 +48,8 @@ static void grow_map( int nnodes )
 	if ((n=sprmapnodes) < 2) n=2; // start where we left off last time
 
 	if (nnodes < 2 || nnodes <= sprmapnodes) return; 
-	sprmap = xrealloc( sprmap, newsize * sizeof(*sprmap) ); // NULL is ok.
-	sprmapnodes = nnodes;	// TODO: real locking
+	sprmap = xrealloc( sprmap, newsize * sizeof(*sprmap) ); // realloc(NULL,...) is malloc
+	sprmapnodes = nnodes;
  
 	for( ; n<=nnodes ; n++ ){
 		for( i=0 ; i<n-1 ; i++ ){

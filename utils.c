@@ -1,3 +1,8 @@
+/* standard error-exit wrappers for memory allocation
+ * allspr library copyright Peter Cordes <peter@cordes.ca>
+ * license: GPLv2 or later
+ */
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>

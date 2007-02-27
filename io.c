@@ -1,5 +1,6 @@
 /* subtree pruning-regrafting (spr) library
  * Peter Cordes <peter@cordes.ca>, Dalhousie University
+ * license: GPLv2 or later
  */
 
 #define _GNU_SOURCE

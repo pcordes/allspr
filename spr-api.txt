@@ -6,3 +6,10 @@ internal state.  A future version could be re-entrant, but this one isn't.
 You can have multiple trees being spr()ed at once, just make sure that you
 don't have two calls into the library from different threads at the same time.
 (esp. to spr_init(), but there might be other functions that aren't safe.)
+
+SPRs are done on a rooted tree.  The position of the root will determine which
+splits are candidates for SPRs.  This is built in to the SPR algorithm fairly
+deeply, so a whole new SPR function would be needed to work with unrooted trees
+(or to move the root around).  Some of the supporting library functions could
+stay the same, such as the lcg for iterating over all integers from 1-n in a
+pseudo-random order.

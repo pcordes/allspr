@@ -1,3 +1,10 @@
+/* subtree pruning-regrafting (spr) library
+ * Peter Cordes <peter@cordes.ca>, Dalhousie University
+ * license: GPLv2 or later
+ */
+
+#define ALLSPR_VERSION "1.1"
+
 #ifndef TRUE
 #define TRUE (1)
 #define FALSE (0)
@@ -20,6 +27,8 @@ struct spr_nodename{
 /* libspr requires that there be a char * stored at the address pointed to by 
  * data.  This can be the first member of a custom-defined structure,
  * of course.  The char * is used as the name of the node. 
+ * If you compile a version of the library with spr_private.h including
+ * your own headers, you can have the ->name structure member anywhere.
 
  * internal nodes in phylogenetic trees only exist with two children,
  * so left!=NULL implies right!=NULL.  The root node has parent == NULL
@@ -141,18 +150,21 @@ void spr_libsprtest( struct spr_tree *state );
 
 
 /***** internal functions that might be useful  ****/
-struct spr_node *spr_findroot( const struct spr_node *p ); // walk parent ptr to root
+struct spr_node *spr_findroot( struct spr_node *p ); // walk parent ptr to root
 int spr_countnodes( const struct spr_node *p );
 int spr_isancestor( const struct spr_node *ancestor, const struct spr_node *child );
 
+// xmalloc()ed copy of each node, with ->data pointers the same.
+struct spr_node *spr_copytree( const struct spr_node *node );
+
 /* Return a pointer to the found node, or NULL.  inefficient because the tree
  * isn't sorted on the name or the address of the nodes. */
-struct spr_node *spr_search( const struct spr_node *HAYSTACK, const struct spr_node *NEEDLE);
-struct spr_node *spr_searchbyname( const struct spr_node *HAYSTACK, const char *NEEDLE );
+struct spr_node *spr_search( struct spr_node *HAYSTACK, const struct spr_node *NEEDLE);
+struct spr_node *spr_searchbyname( struct spr_node *HAYSTACK, const char *NEEDLE );
 
 // These will be faster (once they're written)
-struct spr_node *spr_treesearchbyname(const struct spr_tree *t, const char *s );
-struct spr_node *spr_treesearch(const struct spr_tree *t, const struct spr_node *query );
+struct spr_node *spr_treesearchbyname( struct spr_tree *t, const char *s );
+struct spr_node *spr_treesearch( struct spr_tree *t, const struct spr_node *query );
 
 
 #ifdef __GNUC__

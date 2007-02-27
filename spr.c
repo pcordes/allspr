@@ -1,5 +1,6 @@
 /* subtree pruning-regrafting (spr) library
  * Peter Cordes <peter@cordes.ca>, Dalhousie University
+ * license: GPLv2 or later
  */
 
 #define _GNU_SOURCE
@@ -25,27 +26,27 @@ unsigned int lcg(struct lcg *lcgp) {
 /************ Tree functions ***************/
 
 
-void inorder(const struct spr_node *p, const void (*func)(const struct spr_node *))
+void inorder(const struct spr_node *p, void (*func)(const struct spr_node *))
 {
 	if (p->left) inorder(p->left, func);
 	func( p );
 	if (p->right) inorder(p->right, func);
 }
 
-struct spr_node *spr_treesearchbyname( const struct spr_tree *t, const char *s )
+struct spr_node *spr_treesearchbyname( struct spr_tree *t, const char *s )
 {
 // FIXME: binary search the nodelist...
 	return NULL;
 }
 
-struct spr_node *spr_treesearch( const struct spr_tree *t, const struct spr_node *query )
+struct spr_node *spr_treesearch( struct spr_tree *t, const struct spr_node *query )
 {
 // FIXME: search the node list
 	return NULL;
 }
 
 /* can't count on tree being sorted by name, so search it all */
-struct spr_node *spr_searchbyname( const struct spr_node *p, const char *s )
+struct spr_node *spr_searchbyname( struct spr_node *p, const char *s )
 {
 	struct spr_node *q;
 	if (!p->data)
@@ -61,7 +62,7 @@ struct spr_node *spr_searchbyname( const struct spr_node *p, const char *s )
 	return NULL;
 }
 
-struct spr_node *spr_search( const struct spr_node *tree, const struct spr_node *query )
+struct spr_node *spr_search( struct spr_node *tree, const struct spr_node *query )
 {
 	struct spr_node *q;
 	if (tree == query) return tree;
@@ -93,7 +94,7 @@ int spr_isancestor( const struct spr_node *ancestor, const struct spr_node *p )
 }
 
 /* follow the linked list all the way up */
-struct spr_node *spr_findroot( const struct spr_node *p )
+struct spr_node *spr_findroot( struct spr_node *p )
 {
 	while( p->parent != NULL ) p = p->parent;
 	return p;
@@ -205,7 +206,7 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 
 /****************** SPR iteration ******************/
 
-/* return 0 for all done, else a positive SPR number */
+/* return 0 for all done, else 1+SPR number (always positive) */
 int spr_next_spr( struct spr_tree *tree )
 {
 	int tmp;
@@ -218,6 +219,7 @@ int spr_next_spr( struct spr_tree *tree )
 		if (tmp && tree->dups)
 			tmp=spr_add_dup(tree, tree->root);
 	}while( !tmp && sprnum != tree->lcg.startstate );
+// FIXME: does this skip the last SPR?  no, but it returns 0 for it.
 
 	if (tree->lcg.startstate == sprnum){
 		return 0;
