@@ -17,9 +17,10 @@
 // all the setup for this is in init.c
 unsigned int lcg(struct lcg *lcgp) {
 	unsigned long a = lcgp->a, c = lcgp->c, m = lcgp->m;
+	unsigned long old = lcgp->state;
 
 	lcgp->state = (a*lcgp->state + c) % m;
-	return lcgp->state;
+	return old;
 }
 
 

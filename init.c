@@ -356,6 +356,7 @@ spr_init( struct spr_node *root, void (*callback)(struct spr_node *), int dup )
  // set up an LCG that will cover the whole SPR space
 	findlcg( &tree->lcg, nnodes*(nnodes-1) );
 	tree->lcg.startstate = tree->lcg.state = rand() % tree->lcg.m;
+	lcg( &tree->lcg );  // this will return startstate
 
 	tree->callback = callback;
 	tree->unspr_dest = NULL;

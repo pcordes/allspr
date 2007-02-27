@@ -7,3 +7,6 @@ int sprmapnodes;
 //#define SPR_NODE_DATAPTR_TYPE struct spr_nodename
 #define SPR_NODE_DATAPTR_TYPE struct noeud
 //#define name nom
+
+struct lcg;
+unsigned int lcg(struct lcg *lcgp); // spr.c
