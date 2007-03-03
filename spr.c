@@ -36,14 +36,14 @@ void inorder(const struct spr_node *p, void (*func)(const struct spr_node *))
 
 struct spr_node *spr_treesearchbyname( struct spr_tree *t, const char *s )
 {
-// FIXME: binary search the nodelist...
-	return NULL;
+// TODO: binary search the nodelist...
+	return spr_searchbyname(t->root, s);
 }
 
 struct spr_node *spr_treesearch( struct spr_tree *t, const struct spr_node *query )
 {
-// FIXME: search the node list
-	return NULL;
+// TODO: search the node list
+	return spr_search(t->root, query);
 }
 
 /* can't count on tree being sorted by name, so search it all */
@@ -75,6 +75,18 @@ struct spr_node *spr_search( struct spr_node *tree, const struct spr_node *query
 	return NULL;
 }
 
+struct spr_node *spr_searchbypointer( struct spr_node *tree, const void *query )
+{
+	struct spr_node *q;
+	if (tree->data == query) return tree;
+
+	if (tree->left){
+		if ((q = spr_searchbypointer(tree->left, query))) return q;
+		else if ((q = spr_searchbypointer(tree->right, query))) return q;
+	}
+	return NULL;
+}
+
 int spr_countnodes( const struct spr_node *p )
 {
 	if (p->left)
@@ -99,18 +111,6 @@ struct spr_node *spr_findroot( struct spr_node *p )
 {
 	while( p->parent != NULL ) p = p->parent;
 	return p;
-}
-
-/* find whether a node is pointed to by the left (0) or right (1)
- * pointer in its parent */
-static int isrightchild( const struct spr_node *p )
-{
-	return p == p->parent->right;
-}
-
-static struct spr_node **meinparent( const struct spr_node *p )
-{
-	return isrightchild(p)? &(p->parent->right) : &(p->parent->left);
 }
 
 /* reattach src (and it's parent node,

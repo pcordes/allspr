@@ -11,16 +11,114 @@
 #define SPR_PRIVATE
 #include "spr.h"
 
-static int sametopo( struct spr_node *p1, struct spr_node *p2 )
+// return neighbours (not necessarily leaves).
+// only nodes near the root have two
+static inline struct spr_node *neighbour1( struct spr_node *p ){
+	if (isroot(p->parent))
+		return (sibling(p))->left;
+	else return sibling(p);
+}
+static inline struct spr_node *neighbour2( struct spr_node *p ){
+	if (isroot(p->parent))
+		return (sibling(p))->right;
+	else if (isroot(p->parent->parent)){
+		return sibling(p->parent);
+	}else
+		return NULL;
+}
+
+void checktree( const struct spr_node *p )
 {
-//	return TRUE;
-	return FALSE;
+	if(p){
+		assert((p->left && p->right) || (!p->left && !p->right));
+		checktree(p->left);
+		checktree(p->right);
+	}
+}
+
+
+/* compare two trees.  return TRUE if they have the same topology,
+ * ignoring the position of the root. i.e. as if they represent unrooted trees.
+ * Actually operate on copies of the trees, because we destructively reduce
+ * the two trees until we find a difference, or get down to three nodes.
+ * (there is only possible unrooted topology for three nodes).
+ *
+ * A cherry is an internal node with two leaf nodes as children.  If a cherry
+ * exists in tree A, it must exist in tree B if they are topologically the same.
+ * Our algorithm is: find a cherry in A, find it in B, and then replace it
+ * with just one of its constituent leaves.
+ */
+static int sametopo( struct spr_node *tree1, struct spr_node *tree2, int nnodes, int ntaxa )
+{
+	struct spr_node *A, *B, *cherryA, *cherryB, *p, *q;
+	int retval = FALSE;
+	checktree(tree1);
+	checktree(tree2);
+	A = spr_copytree (tree1);
+	B = spr_copytree (tree2);
+	
+	while (ntaxa>3){
+		checktree(A);
+		checktree(B);
+		cherryA = A;
+		while(42){ // find a cherry in A
+			if (isleaf(cherryA->left)){
+				if (isleaf(cherryA->right)) break; // found
+				else cherryA = cherryA->right;
+			}else cherryA = cherryA->left;
+		}
+
+		p = spr_searchbypointer(B, cherryA->left->data);
+		assert(p /* trees must share a set of data pointers */ );
+		cherryB = p->parent; // only a potential cherry so far
+
+		if ((q=neighbour1(p))->data == cherryA->right->data ||
+		    ((q=neighbour2(p)) && q->data == cherryA->right->data)){
+			// if the cherry in B spans the root, always free the root and
+			// the leaf attached to it, with the remaining tree needing no modification
+			if (isroot(p->parent)){
+				// p = the leaf child of the root, which we are going to delete
+				B = sibling(p);
+				B->parent = NULL;
+				free(p->parent);
+				free(p);
+				p = cherryA->right;
+			}else if (isroot(q->parent)){
+				B = sibling(q);
+				B->parent = NULL;
+				free(q->parent);
+				free(q);
+				p = cherryA->left; // the difference, besides p/q
+			}else{
+				// the simple case not involving the root.
+				cherryB->data = q->data;
+				free(cherryB->left);
+				free(cherryB->right);
+				cherryB->left = cherryB->right = NULL;
+				p = cherryA->right;
+			}
+			// p = the leaf in A that we want to _keep_
+			cherryA->data = p->data;
+			free(cherryA->left);
+			free(cherryA->right);
+			cherryA->left = cherryA->right = NULL;
+		}else
+			goto out_FALSE;
+
+		ntaxa--;
+	}
+
+	retval = TRUE;
+ out_FALSE:
+	spr_treefree(A, FALSE);
+	spr_treefree(B, FALSE);
+	return retval;
 }
 
 struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root ){
 	struct spr_duplist *p = tree->dups;
 	for (p=tree->dups ; p ; p=p->next){
-		if (sametopo(root, p->tree)) break;
+		if (sametopo(root, p->tree, tree->nodes, tree->taxa)) break;
 	}
 	return p ? p->tree : NULL;
 }

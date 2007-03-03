@@ -66,7 +66,7 @@ struct spr_nodename{
  */
 
 struct spr_node{
-	struct spr_node *parent, *left, *right;
+	struct spr_node *left, *right, *parent;
 #ifdef SPR_NODE_DATAPTR_TYPE
 	SPR_NODE_DATAPTR_TYPE *data;
 #else
@@ -174,6 +174,8 @@ struct spr_node *spr_copytree( const struct spr_node *node );
  * isn't sorted on the name or the address of the nodes. */
 struct spr_node *spr_search( struct spr_node *HAYSTACK, const struct spr_node *NEEDLE);
 struct spr_node *spr_searchbyname( struct spr_node *HAYSTACK, const char *NEEDLE );
+// find the node that has the same ->data pointer.
+struct spr_node *spr_searchbypointer( struct spr_node *HAYSTACK, const void *NEEDLE );
 
 // These will be faster (once they're written)
 struct spr_node *spr_treesearchbyname( struct spr_tree *t, const char *s );
@@ -181,7 +183,7 @@ struct spr_node *spr_treesearch( struct spr_tree *t, const struct spr_node *quer
 
 
 #ifdef __GNUC__
-static inline struct spr_node *spr_newnode( struct spr_node *parent,struct spr_node *left, struct spr_node *right, typeof(parent->data) data)
+static inline struct spr_node *spr_newnode( struct spr_node *left, struct spr_node *right, struct spr_node *parent, typeof(parent->data) data)
 {
   struct spr_node *p;
   p = xmalloc(sizeof(*p));
