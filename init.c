@@ -14,7 +14,7 @@
 
 #include <assert.h>
 
-#include "spr_private.h"
+#define SPR_PRIVATE
 #include "spr.h"
 
 /* format of sprmap (transposed):

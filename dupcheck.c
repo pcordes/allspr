@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "spr_private.h"
+#define SPR_PRIVATE
 #include "spr.h"
 
 static int sametopo( struct spr_node *p1, struct spr_node *p2 )

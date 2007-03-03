@@ -5,6 +5,20 @@
 
 #define ALLSPR_VERSION "1.1"
 
+#ifdef SPR_PRIVATE // intended for internal library use.
+int (*sprmap)[2];
+int sprmapnodes;
+
+// this has to be up here near the beginning of spr.h
+#define nom name
+#include "../procov/mynhmlg.h"
+
+//#define SPR_NODE_DATAPTR_TYPE struct spr_nodename
+#define SPR_NODE_DATAPTR_TYPE struct noeud
+//#define name nom
+#endif // SPR_PRIVATE
+
+
 #ifndef TRUE
 #define TRUE (1)
 #define FALSE (0)
@@ -17,6 +31,23 @@
 # else
 #  define __func__ "<unknown>"
 # endif
+#endif
+
+#ifndef max
+#ifdef __GNUC__
+#define max(a,b) \
+       ({ typeof (a) _a = (a); \
+           typeof (b) _b = (b); \
+         _a > _b ? _a : _b; })
+
+#define min(a,b) \
+       ({ typeof (a) _a = (a); \
+           typeof (b) _b = (b); \
+         _a < _b ? _a : _b; })
+#else
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
 #endif
 
 
@@ -79,29 +110,11 @@ struct spr_tree{
 
 /********** Public Functions ***************/
 
-
 // hopefully this doesn't cause too much of a problem,
 // since progs that link libspr can just use these
 void *xmalloc (size_t s);  // perror and exit on error
 void *xcalloc (size_t n, size_t s);
 void *xrealloc (void *p, size_t n);
-
-#ifndef max
-#ifdef __GNUC__
-#define max(a,b) \
-       ({ typeof (a) _a = (a); \
-           typeof (b) _b = (b); \
-         _a > _b ? _a : _b; })
-
-#define min(a,b) \
-       ({ typeof (a) _a = (a); \
-           typeof (b) _b = (b); \
-         _a < _b ? _a : _b; })
-#else
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#endif
-#endif
 
 
 // Library API stuff
@@ -177,3 +190,34 @@ static inline struct spr_node *spr_newnode( struct spr_node *parent,struct spr_n
   return p;
 }
 #endif
+
+
+
+#ifdef SPR_PRIVATE // intended for internal library use.
+unsigned int lcg(struct lcg *lcgp); // spr.c
+
+
+// node relationship helpers
+#define isleaf(p) (!(p)->left)
+#define isroot(p) (!(p)->parent)
+
+/* find whether a node is pointed to by the left (0) or right (1)
+ * pointer in its parent */
+static inline int isrightchild( const struct spr_node *p )
+{
+	return p == p->parent->right;
+}
+
+static inline struct spr_node **meinparent( const struct spr_node *p )
+{
+	return (isrightchild(p)? &p->parent->right : &p->parent->left);
+}
+
+static inline struct spr_node **siblinginparent( const struct spr_node *p )
+{
+	return (isrightchild(p)? &p->parent->left  : &p->parent->right);
+}
+#define sibling(p) (*siblinginparent(p))
+
+
+#endif // SPR_PRIVATE

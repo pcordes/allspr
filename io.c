@@ -9,7 +9,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "spr_private.h"
+#define SPR_PRIVATE
 #include "spr.h"
 
 // half-assed newick parser is in the front-end brontler.c.  A better parser

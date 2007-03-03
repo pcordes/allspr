@@ -17,7 +17,7 @@ liballspr.a: $(LIBOBJS)
 
 brontler.o $(LIBOBJS): Makefile
 brontler.o: spr.h
-$(LIBOBJS): spr.h spr_private.h
+$(LIBOBJS): spr.h
 
 .PHONY: clean
 clean:

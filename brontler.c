@@ -24,7 +24,7 @@ struct nodedata{
  * that we will actually store in it, instead of a void *
  * so we don't have to cast all the time */
 //#define SPR_NODE_DATAPTR_TYPE struct nodedata
-#include <spr_private.h>
+#define SPR_PRIVATE
 #include <spr.h>
 
 
