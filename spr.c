@@ -105,13 +105,6 @@ int spr_isancestor( const struct spr_node *ancestor, const struct spr_node *p )
 	return FALSE;
 }
 
-/* follow the linked list all the way up */
-struct spr_node *spr_findroot( struct spr_node *p )
-{
-	while( p->parent != NULL ) p = p->parent;
-	return p;
-}
-
 /* reattach src (and it's parent node,
  * which would otherwise have to be deleted)
  * to the branch between dest and it's parent.

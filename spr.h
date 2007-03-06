@@ -163,7 +163,11 @@ void spr_libsprtest( struct spr_tree *state );
 
 
 /***** internal functions that might be useful  ****/
-struct spr_node *spr_findroot( struct spr_node *p ); // walk parent ptr to root
+static inline struct spr_node *spr_findroot( struct spr_node *p )
+{ /* follow the linked list all the way up */
+	while( p->parent != NULL ) p = p->parent;
+	return p;
+}
 int spr_countnodes( const struct spr_node *p );
 int spr_isancestor( const struct spr_node *ancestor, const struct spr_node *child );
 
