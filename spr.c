@@ -77,12 +77,11 @@ struct spr_node *spr_search( struct spr_node *tree, const struct spr_node *query
 
 struct spr_node *spr_searchbypointer( struct spr_node *tree, const void *query )
 {
-	struct spr_node *q;
-	if (tree->data == query) return tree;
+	struct spr_node *p, *q;
 
-	if (tree->left){
-		if ((q = spr_searchbypointer(tree->left, query))) return q;
-		else if ((q = spr_searchbypointer(tree->right, query))) return q;
+	for( p=tree ; p ; p=p->left ){
+		if (p->data == query) return p;
+		if ((q = spr_searchbypointer(p->right, query))) return q;
 	}
 	return NULL;
 }
