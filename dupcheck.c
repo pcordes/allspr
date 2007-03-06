@@ -52,14 +52,14 @@ static int sametopo( struct spr_node *tree1, struct spr_node *tree2, int nnodes,
 {
 	struct spr_node *A, *B, *cherryA, *cherryB, *p, *q;
 	int retval = FALSE;
-	checktree(tree1);
-	checktree(tree2);
+//	checktree(tree1);
+//	checktree(tree2);
 	A = spr_copytree (tree1);
 	B = spr_copytree (tree2);
 	
 	while (ntaxa>3){
-		checktree(A);
-		checktree(B);
+//		checktree(A);
+//		checktree(B);
 		cherryA = A;
 		while(42){ // find a cherry in A
 			if (isleaf(cherryA->left)){
@@ -72,33 +72,31 @@ static int sametopo( struct spr_node *tree1, struct spr_node *tree2, int nnodes,
 		assert(p /* trees must share a set of data pointers */ );
 		cherryB = p->parent; // only a potential cherry so far
 
+		// find the cherry in B and reduce both trees
 		if ((q=neighbour1(p))->data == cherryA->right->data ||
 		    ((q=neighbour2(p)) && q->data == cherryA->right->data)){
-			// if the cherry in B spans the root, always free the root and
+			// if the cherry in B spans the root, always delete the root and
 			// the leaf attached to it, with the remaining tree needing no modification
-			if (isroot(p->parent)){
-				// p = the leaf child of the root, which we are going to delete
-				B = sibling(p);
-				B->parent = NULL;
-				free(p->parent);
-				free(p);
-				p = cherryA->right;
-			}else if (isroot(q->parent)){
+			if (isroot(p->parent) || isroot(q->parent)){
+			// point q at the leaf child of the root, which we are going to delete
+				if (isroot(p->parent)){
+					q = p;
+					cherryA->data = cherryA->right->data;
+				}else
+					cherryA->data = cherryA->left->data;
 				B = sibling(q);
 				B->parent = NULL;
 				free(q->parent);
 				free(q);
-				p = cherryA->left; // the difference, besides p/q
 			}else{
 				// the simple case not involving the root.
 				cherryB->data = q->data;
 				free(cherryB->left);
 				free(cherryB->right);
 				cherryB->left = cherryB->right = NULL;
-				p = cherryA->right;
+				cherryA->data = cherryA->right->data;
 			}
-			// p = the leaf in A that we want to _keep_
-			cherryA->data = p->data;
+			// make the matching change in tree A
 			free(cherryA->left);
 			free(cherryA->right);
 			cherryA->left = cherryA->right = NULL;
@@ -106,6 +104,7 @@ static int sametopo( struct spr_node *tree1, struct spr_node *tree2, int nnodes,
 			goto out_FALSE;
 
 		ntaxa--;
+		nnodes-=2;
 	}
 
 	retval = TRUE;
