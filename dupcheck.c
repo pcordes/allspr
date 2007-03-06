@@ -70,8 +70,9 @@ static int sametopo( struct spr_node *array1, struct spr_node *array2, size_t as
 		}
 
 		//p = spr_searchbypointer(B, cherryA->left->data);
-		for( p=array2 ; p<=array2+asize && p->data!=cherryA->left->data ; p++ );
-		assert( p && p <= array2+asize /* trees must share a set of data pointers */ );
+		for( p=array2 ; p<array2+asize && p->data!=cherryA->left->data ; p++ );
+		// if (!(p && p < array2+asize)) *(int *)NULL = 1; // segfault please
+		assert( p && p < array2+asize /* trees must share a set of data pointers */ );
 		cherryB = p->parent; // only a potential cherry so far
 
 		// find the cherry in B and reduce both trees
@@ -115,28 +116,49 @@ static int sametopo( struct spr_node *array1, struct spr_node *array2, size_t as
 	return retval;
 }
 
+/* drive the sametopo routine.
+ * spr_copytoarray is slow compared to memcpy, so the dup list is stored as
+ * trees in arrays that can be used in place.  memcpy is used to save and restore
+ * the tree.  A similar optimization is used for the tree we're testing against
+ * the dup list, but it's the same every time, so there's less copying in the loop.
+ *
+ * Being able to use the dup list in place, with no calls to spr_copytoarray()
+ * in the inner loop, is a huge win for execution speed (~double speed on 16 taxa).
+ * A more space-efficient dup list could be used, maybe with tree nodes as int or even
+ * short int array indices.  expanding this to a struct spr_node array could be done with
+ * a linear pass, not a recursive function like spr_copytoarray().
+ *
+ * This is all academic when liballspr is being used by a likelihood optimizing program
+ * that takes much more time to evaluate a tree than it does to dup check it, and which
+ * can't practically be used on very large (> 1000 nodes?) trees.
+ * Even with 64bit pointers, a dup list tree array takes 1.8kB for a 1000node tree.
+ */
 struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root ){
 	struct spr_duplist *p = tree->dups;
-	struct spr_node *A, *B, *saveA;
+	struct spr_node *A, *B, *saveA, *saveB;
 	int n = tree->nodes, tmp;
 
 	assert( tree->nodes == spr_countnodes(root) );
 
 	A = xmalloc(n*sizeof(*A));
-	B = xmalloc(n*sizeof(*B));
 
 	tmp = spr_copytoarray(A, root);
 	assert( n == tmp /* copytoarray had better copy the right number of nodes */ );
 
 	saveA = xmalloc(n*sizeof(*A));
 	memcpy(saveA, A, n*sizeof(*A));
+	saveB = xmalloc(n*sizeof(*A));
 	for (p=tree->dups ; p ; p=p->next){
+		B = p->tree;
+		// the dup list can be used in place if we make a backup
+		memcpy(saveB, B, n*sizeof(*A));
+		tmp = sametopo(A, B, n, tree->taxa);
+		memcpy(B, saveB, n*sizeof(*A));
+		if (tmp) break;
 		memcpy(A, saveA, n*sizeof(*A));
-		spr_copytoarray(B, p->tree);
-		if (sametopo(A, B, n, tree->taxa)) break;
 	}
+	free(saveB);
 	free(saveA);
-	free(B);
 	free(A);
 	return p ? p->tree : NULL;
 }
@@ -178,9 +200,10 @@ size_t spr_copytoarray( struct spr_node *A, const struct spr_node *node )
 
 int spr_add_dup( struct spr_tree *tree, struct spr_node *root )
 {
-	if (!spr_find_dup( tree, root )){
+	if (!spr_find_dup(tree, root)){
 		struct spr_duplist *p = xmalloc(sizeof(*p));
-		p->tree = spr_copytree(root);
+		p->tree = xmalloc(tree->nodes * sizeof(*p->tree));
+		spr_copytoarray(p->tree, root);
 		p->next = tree->dups;
 		tree->dups = p;
 		return 1;

@@ -365,7 +365,8 @@ spr_init( struct spr_node *root, void (*callback)(struct spr_node *), int dup )
 	else{
 		tree->dups = xmalloc(sizeof(*tree->dups));
 		tree->dups->next = NULL;
-		tree->dups->tree = spr_copytree(tree->root);
+		tree->dups->tree = xmalloc(nnodes * sizeof(*tree->dups->tree));
+		spr_copytoarray(tree->dups->tree, tree->root);
 	}
 
 	return tree;
@@ -390,13 +391,8 @@ void spr_treefree( struct spr_node *p, int freedata )
 
 void spr_statefree( struct spr_tree *tree )
 {
-	struct spr_duplist *e, *d = tree->dups;
-	while (d){
-		e = d;
-		d = d->next;
-		spr_treefree(e->tree, FALSE);
-		free (e);
-	}
+	for( struct spr_duplist *d = tree->dups ; d ; d=d->next )
+		free(d->tree); // the dup list is block-allocated
 	if (tree->nodelist)
 		free(tree->nodelist);
 	free(tree);

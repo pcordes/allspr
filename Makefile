@@ -1,4 +1,4 @@
-CC = gcc
+CC = gcc --std=gnu99
 CPPFLAGS = -I.
 CFLAGS = -Wall -g
 # -O3 -ffast-math -march=athlon-xp -funroll-loops -fomit-frame-pointer
