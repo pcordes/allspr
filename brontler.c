@@ -211,7 +211,7 @@ int main (int argc, char *argv[])
 		i=0;
 		printf ("tree: taxa: %d, nodes: %d, possible SPRs <= %d\n",
 			tree->taxa, tree->nodes, tree->lcg.m );
-		tree->lcg.startstate=tree->lcg.state=16;
+		//		tree->lcg.startstate=tree->lcg.state=16;
 		lcg(&tree->lcg);
 		while ( (tmp = spr_next_spr(tree)) ){
 //			treeprint( tree->root );
