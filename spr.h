@@ -169,6 +169,8 @@ int spr_isancestor( const struct spr_node *ancestor, const struct spr_node *chil
 
 // xmalloc()ed copy of each node, with ->data pointers the same.
 struct spr_node *spr_copytree( const struct spr_node *node );
+// copy a tree to an array of spr_countnodes(node) struct spr_nodes.  avoids malloc overhead for each node
+size_t spr_copytoarray( struct spr_node *A, const struct spr_node *node );
 
 /* Return a pointer to the found node, or NULL.  inefficient because the tree
  * isn't sorted on the name or the address of the nodes. */
