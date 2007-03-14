@@ -81,8 +81,8 @@ static void grow_map( int nnodes )
 unsigned int sieved = 0, maxptest = 0;
 unsigned int *primeset = NULL;
 
-#define is_prime_(p)	((primeset[(p)>>6]>>(((p)>>1)&31))&1)
-#define exclude_(p)	( primeset[(p)>>6] &= ((-1) ^ (1<<(((p)>>1)&31))) )
+#define is_prime_macro(p)	((primeset[(p)>>6]>>(((p)>>1)&31))&1)
+#define exclude_macro(p)	( primeset[(p)>>6] &= ((-1) ^ (1<<(((p)>>1)&31))) )
 
 /* can't easily be grown; easiest to re-sieve from 0 every time it has to grow
  * could change inner loop (over n) to start low*low+m (where m makes it a
@@ -95,36 +95,12 @@ static void sieve(unsigned int sqrthigh){
 	memset( primeset, -1, sizeof(*primeset) * (1 + (high>>6)) );
 //	for( i=0 ; i < (high>>6) ; primeset[i++] = -1 );
 	for( i=3 ; i <= sqrthigh ; i += 2){
-		if( is_prime_(i) ){
+		if( is_prime_macro(i) ){
 			for( n=i*i; n <= high ; n+=2*i ){
-				exclude_(n);
+				exclude_macro(n);
 			}
 		}
 	}
-}
-
-static inline int next_prime (int i)
-{
-	if (i<=2) return 2;
-	i |= 1;			// make i odd
-	while (i < maxptest && !is_prime_(i)) i+=2;
-	assert( i < maxptest ); // FIXME: better error handling
-
-	return i;
-}
-
-static void primesetup(int k);
-
-static inline int is_prime(int p){
-//#ifndef NDEBUG
-	if (p > maxptest){ // TODO: better error handling?
-		fprintf(stderr,"spr debug: sieving more primes. old max %d",
-			maxptest);
-		primesetup( p*2 );
-		fprintf( stderr, ", new %d\n", maxptest );
-	}
-//#endif
-	return p>1 && (p==2 || (p & is_prime_(p)));
 }
 
 static void primesetup(int k){
@@ -135,7 +111,7 @@ static void primesetup(int k){
 		sqrsize = 7;
 
 	// for allspr, just go big the first time
-	sqrsize = min( 21, sqrsize );
+	sqrsize = max( 21, sqrsize );
 
 	if (sqrsize > sieved){
 		primeset = xrealloc(primeset, sizeof(*primeset) * 
@@ -144,6 +120,25 @@ static void primesetup(int k){
 		sieved = sqrsize;
 		maxptest = sieved * sieved;
 	}
+}
+
+static inline int is_prime(int p){
+	if (p > maxptest){ // TODO: better error handling?
+		fprintf(stderr,"spr debug: sieving more primes. old max %d",
+			maxptest);
+		primesetup( p*2 );
+		fprintf( stderr, ", new %d\n", maxptest );
+	}
+	return p>1 && (p==2 || (p & is_prime_macro(p)));
+}
+
+static inline int next_prime (int i)
+{
+	if (i<=2) return 2;
+	i |= 1;			// make i odd
+	while (!is_prime(i)) i+=2;
+
+	return i;
 }
 
 /******************** Linear Congruential Generator setup ************/
