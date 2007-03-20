@@ -98,7 +98,7 @@ struct spr_tree{
 
 	struct lcg lcg;
 
-	void (*callback)(struct spr_node *);
+	void (*callback)(struct spr_node *);  // not implemented
 	int nodes;
 	int taxa;
 };
@@ -135,6 +135,7 @@ void spr_treefree( struct spr_node *tree, int freenodedata );
 // Tree topology
 /* do an spr, attaching the subtree rooted at src 
  * to the branch between dest and its parent. return success(TRUE)/fail(FALSE)
+ * Will be undone by the next spr call, because unspr info is saved.
  */
 int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
 
@@ -142,6 +143,9 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
 int spr_next_spr( struct spr_tree *tree );
 /* return the tree to its original topology, without doing a new SPR */
 int spr_unspr( struct spr_tree *tree );
+// do a permanent spr: don't save unspr info.  preserves duplicate checking list.
+int spr_apply_sprnum( struct spr_tree *tree, int sprnum );
+int spr_apply_spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
 
 // duplicate checking
 /* add a tree topology to the dup list (copies the tree).

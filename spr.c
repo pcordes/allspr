@@ -149,7 +149,7 @@ int spr_unspr( struct spr_tree *tree )
 }
 
 
-/* A wrapper returns the tree to its original topology if needed, then 
+/* A wrapper that returns the tree to its original topology if needed, then
  * returns TRUE if the requested SPR was done, else FALSE.  (except when
  * src=dest=NULL, return TRUE if the tree was modified back to the original.)
  * some of the allowed-spr checks are duplicated in dospr().
@@ -176,7 +176,6 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 	}
 	/* src or dest == root is not useful because we actually deal
 	 * with internal parent nodes, which the root doesn't have. */
-	/* FIXME: if( src is too close to dest ) return; more checking */
 
 	tree->unspr_src = src;
 	tree->unspr_dest = isrightchild(src) ? 
@@ -218,4 +217,20 @@ int spr_next_spr( struct spr_tree *tree )
 		return 0;
 	}else
 		return 1 + sprnum;
+}
+
+int spr_apply_spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
+{
+	int tmp;
+	tmp = spr(tree, src, dest);
+	tree->unspr_dest = NULL;
+	tree->unspr_src  = NULL;
+	tree->lcg.startstate = tree->lcg.state;
+	return tmp;
+}
+
+int spr_apply_sprnum( struct spr_tree *tree, int sprnum )
+{
+	return spr_apply_spr(tree, tree->nodelist[ sprmap[sprnum][0] ],
+				   tree->nodelist[ sprmap[sprnum][1] ]);
 }
