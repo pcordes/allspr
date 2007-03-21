@@ -1,3 +1,10 @@
+ The most up-to-date documentation for the library is the header file,
+spr.h.  It is fairly well commented, and of course it lists the available
+functions.  The library source code is also well commented, including
+comments on what functions are for and how they should be called.  If these
+sources are insufficient, email me <peter@cordes.ca>, and tell me what kind
+of documentation would be best.  Maybe I'll write some :)
+
 The library needs to find out some info about a tree to do anything, so
 you have to call spr_init() first.
 
