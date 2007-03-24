@@ -7,25 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <assert.h>
 
 #define SPR_PRIVATE
 #include "spr.h"
 
 
-/***** Randomness functions *****/
-// all the setup for this is in init.c
-unsigned int lcg(struct lcg *lcgp) {
-	unsigned long a = lcgp->a, c = lcgp->c, m = lcgp->m;
-	unsigned long old = lcgp->state;
-
-	lcgp->state = (a*lcgp->state + c) % m;
-	return old;
-}
-
-
-/************ Tree functions ***************/
-
+/************ node search functions ***************/
 
 void inorder(const struct spr_node *p, void (*func)(const struct spr_node *))
 {
@@ -198,7 +187,9 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 
 /****************** SPR iteration ******************/
 
-/* return 0 for all done, else 1+SPR number (always positive) */
+/* return 0 for all done, else 1+SPR number.  Zero makes a nicer sentinel than
+ * UINT_MAX for users of the library, but beware of the offset when debugging.
+ */
 int spr_next_spr( struct spr_tree *tree )
 {
 	int tmp;
@@ -206,31 +197,30 @@ int spr_next_spr( struct spr_tree *tree )
 
 	do{  // try SPRs until we find a legal one, or loop to beginning
 		sprnum = lcg( &tree->lcg );
-		tmp = spr(tree, tree->nodelist[ sprmap[sprnum][0] ],
-			        tree->nodelist[ sprmap[sprnum][1] ]);
+		if (UINT_MAX == sprnum) break;
+		tmp = spr(tree, tree->nodelist[ sprmap(sprnum, 0) ],
+			        tree->nodelist[ sprmap(sprnum, 1) ]);
 		if (tmp && tree->dups)
-			tmp=spr_add_dup(tree, tree->root);
-	}while( !tmp && sprnum != tree->lcg.startstate );
-// FIXME: does this skip the last SPR?  no, but it returns 0 for it.
+			tmp = spr_add_dup(tree, tree->root);
+	}while( !tmp );
 
-	if (tree->lcg.startstate == sprnum){
-		return 0;
-	}else
-		return 1 + sprnum;
+	if (UINT_MAX == sprnum) return 0;
+	else			return 1 + sprnum;
 }
 
-int spr_apply_spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
+/* move to a new tree */
+void spr_apply(struct spr_tree *tree)
+{
+	tree->unspr_dest = tree->unspr_src = NULL;
+	tree->lcg.startstate = UINT_MAX;
+}
+
+int spr_apply_sprnum(struct spr_tree *tree, int sprnum)
 {
 	int tmp;
-	tmp = spr(tree, src, dest);
-	tree->unspr_dest = NULL;
-	tree->unspr_src  = NULL;
-	tree->lcg.startstate = tree->lcg.state;
+	sprnum--; // spr_next_spr offsets spr number by one, so correct for that.
+	tmp = spr(tree, tree->nodelist[ sprmap(sprnum, 0) ],
+			tree->nodelist[ sprmap(sprnum, 1) ]);
+	spr_apply(tree);
 	return tmp;
-}
-
-int spr_apply_sprnum( struct spr_tree *tree, int sprnum )
-{
-	return spr_apply_spr(tree, tree->nodelist[ sprmap[sprnum][0] ],
-				   tree->nodelist[ sprmap[sprnum][1] ]);
 }

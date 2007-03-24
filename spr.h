@@ -81,7 +81,9 @@ struct spr_duplist{
 
 /* a linear congruential generator is used to generate all integers 
  * between 0 and N without repetition, in a pseudo-random order,
- * to determine the order to try SPRs in */
+ * to determine the order to try SPRs in.
+ * startstate = UINT_MAX means we haven't returned any numbers yet.
+ */
 struct lcg {
 	unsigned int state;
 	unsigned int a, c, m;
@@ -144,8 +146,10 @@ int spr_next_spr( struct spr_tree *tree );
 /* return the tree to its original topology, without doing a new SPR */
 int spr_unspr( struct spr_tree *tree );
 // do a permanent spr: don't save unspr info.  preserves duplicate checking list.
-int spr_apply_sprnum( struct spr_tree *tree, int sprnum );
-int spr_apply_spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
+// resets the spr_next_spr() iterator.
+int spr_apply_sprnum(struct spr_tree *tree, int sprnum);
+// keep current topology, whatever it is.
+void spr_apply(struct spr_tree *tree);
 
 // duplicate checking
 /* add a tree topology to the dup list (copies the tree).
@@ -205,8 +209,10 @@ static inline struct spr_node *spr_newnode( struct spr_node *left, struct spr_no
 
 
 
-#ifdef SPR_PRIVATE // intended for internal library use.
-unsigned int lcg(struct lcg *lcgp); // spr.c
+#ifdef SPR_PRIVATE // intended for internal library use.  might be useful generally
+unsigned int lcg(struct lcg *lcgp);
+void findlcg(struct lcg *lcg_params, int maxval);
+void spr_lcg_staticfree(void);
 
 
 // node relationship helpers

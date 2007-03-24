@@ -10,7 +10,7 @@ LOADLIBES = -lm
 all: brontler liballspr.a
 
 brontler : brontler.o liballspr.a
-LIBOBJS=dupcheck.o spr.o init.o io.o utils.o
+LIBOBJS=dupcheck.o spr.o init.o io.o lcg.o utils.o
 liballspr.a: $(LIBOBJS)
 	ar r $@ $^
 #	$(CC) -shared $(CFLAGS) $(LDFLAGS) $(LOADLIBES) -o $@ $^
@@ -21,4 +21,4 @@ $(LIBOBJS): spr.h
 
 .PHONY: clean
 clean:
-	rm -f *.o brontler
+	rm -f *.o brontler liballspr.a
