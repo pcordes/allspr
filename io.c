@@ -75,7 +75,7 @@ static int newick_recurse(const struct spr_node *p, struct newickprint *str, int
 char *newick( const struct spr_node *tree )
 {
 	int len;
-	int maxlen = 32*spr_countnodes(tree);
+	int maxlen = 100*spr_countnodes(tree);
 	char *string = xmalloc( maxlen ); // plenty of space
 	len = newick_recurse_unsafe( string, tree );
 	string[len++] = ';';
@@ -85,18 +85,21 @@ char *newick( const struct spr_node *tree )
 	return string;
 }
 
-void newickprint(const struct spr_node *tree )
+void newickprint(const struct spr_node *tree, FILE *stream)
 {
-	char *s = newick(tree); puts( s ); free( s );
+	char *s = newick(tree);
+	fputs(s, stream); putc('\n', stream);
+	free(s);
 }
 
 
-void treeprint(const struct spr_node *p)
+void treeprint(const struct spr_node *p, FILE *stream)
 {
-	if (p->left) treeprint(p->left);
+	if (p->left) treeprint(p->left, stream);
 	if (!p->data)
-		puts("node with NULL data");
-	else
-		puts( p->data->name );
-	if (p->right) treeprint(p->right);
+		fputs("node with NULL data\n", stream);
+	else{
+		fputs(p->data->name, stream); putc('\n', stream);
+	}
+	if (p->right) treeprint(p->right, stream);
 }

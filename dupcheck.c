@@ -6,6 +6,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #define SPR_PRIVATE
@@ -131,7 +132,7 @@ static int sametopo( struct spr_node *array1, struct spr_node *array2, size_t as
  * This is all academic when liballspr is being used by a likelihood optimizing program
  * that takes much more time to evaluate a tree than it does to dup check it, and which
  * can't practically be used on very large (> 1000 nodes?) trees.
- * Even with 64bit pointers, a dup list tree array takes 1.8kB for a 1000node tree.
+ * With 64bit pointers, a dup list tree array takes ~3kB for a 50taxon (97node) tree.
  */
 struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root ){
 	struct spr_duplist *p = tree->dups;
@@ -198,15 +199,19 @@ size_t spr_copytoarray( struct spr_node *A, const struct spr_node *node )
 	}
 }
 
+/* TODO: it might be faster to append to the tail of the list, so the most
+ * common topologies stay at the front, where they're checked first. */
 int spr_add_dup( struct spr_tree *tree, struct spr_node *root )
 {
+	int tmp;
 	if (!spr_find_dup(tree, root)){
 		struct spr_duplist *p = xmalloc(sizeof(*p));
 		p->tree = xmalloc(tree->nodes * sizeof(*p->tree));
-		spr_copytoarray(p->tree, root);
+		tmp = spr_copytoarray(p->tree, root);
+		assert( tree->nodes == tmp /* copytoarray had better copy the right number of nodes */ );
 		p->next = tree->dups;
 		tree->dups = p;
-		return 1;
-	}
-	return 0;
+		return TRUE;
+	}else
+		return FALSE;
 }

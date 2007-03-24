@@ -7,17 +7,15 @@
 
 #define _GNU_SOURCE
 #include <limits.h>
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 
 #include <assert.h>
 
 #define SPR_PRIVATE
 #include "spr.h"
 
-/* format of sprmap (transposed):
+/* format of sprmap_table (transposed):
 01 0122 012333  src
 10 2201 333012  dest
  size 2: 2 2
@@ -31,10 +29,7 @@ space required: sum( i=2..n, 2*(i-1) ) = n*(n-1).
 * random
 */
 
-int (*sprmap)[2] = NULL;
-int sprmapnodes = 0;
-
-/* TODO: replace sprmap with a function call, if there's a fast formula...
+/* TODO: replace sprmap_table with a function call, if there's a fast formula...
  * TODO: this should probably have some locking for re-entrancy, then the whole
  * library would be re-entrant.
  */
@@ -48,16 +43,16 @@ static void grow_map( int nnodes )
 	if ((n=sprmapnodes) < 2) n=2; // start where we left off last time
 
 	if (nnodes < 2 || nnodes <= sprmapnodes) return; 
-	sprmap = xrealloc( sprmap, newsize * sizeof(*sprmap) ); // realloc(NULL,...) is malloc
+	sprmap_table = xrealloc( sprmap_table, newsize * sizeof(*sprmap_table) ); // realloc(NULL,...) is malloc
 	sprmapnodes = nnodes;
  
 	for( ; n<=nnodes ; n++ ){
 		for( i=0 ; i<n-1 ; i++ ){
-			sprmap[(n-1)*(n-2) + i][0] = i;
-			sprmap[(n-1)*(n-2) + i][1] = n-1;
+			sprmap_table[(n-1)*(n-2) + i][0] = i;
+			sprmap_table[(n-1)*(n-2) + i][1] = n-1;
 
-			sprmap[(n-1)*(n-2) + i + n-1][0] = n-1;
-			sprmap[(n-1)*(n-2) + i + n-1][1] = i;
+			sprmap_table[(n-1)*(n-2) + i + n-1][0] = n-1;
+			sprmap_table[(n-1)*(n-2) + i + n-1][1] = i;
 			// == (n-1)*(n-1) + i
 		}
 	}
@@ -88,7 +83,7 @@ static void initspr( struct spr_tree *state, struct spr_node *tree )
 			nodelist[n] = p;
 			n++;
 
-			if (!p->left ^ !p->right){ /* consistency check */
+			if (!p->left != !p->right){
 				fprintf( stderr, 
   "libspr: invalid tree detected:\n"
   "internal nodes must have left and right subtrees\n"
@@ -183,19 +178,18 @@ void spr_statefree( struct spr_tree *tree )
 void spr_staticfree( void )
 {
 	sprmapnodes = 0;
-	free( sprmap );
-	sprmap = NULL;
+	free( sprmap_table );
+	sprmap_table = NULL;
 	spr_lcg_staticfree();
 }
-
 
 void spr_libsprtest( struct spr_tree *st )
 {
 	printf("nodes = %d\n", st->nodes);
 	int i, n;
 	n=sprmapnodes;
-	puts("sprmap:");
+	puts("sprmap_table:");
 	for( i=0 ; i<n*(n-1) ; i++ ){
-		printf("%d %d\n", sprmap[i][0], sprmap[i][1] );
+		printf("%d %d\n", sprmap_table[i][0], sprmap_table[i][1] );
 	}
 }

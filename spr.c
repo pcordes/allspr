@@ -25,14 +25,18 @@ void inorder(const struct spr_node *p, void (*func)(const struct spr_node *))
 
 struct spr_node *spr_treesearchbyname( struct spr_tree *t, const char *s )
 {
-// TODO: binary search the nodelist...
-	return spr_searchbyname(t->root, s);
+	struct spr_node *p, *array = t->nodelist[0];
+	for( p=array ; p < array+t->nodes && 0!=strcmp(s,p->data->name) ; p++ );
+	return p;
+//	return spr_searchbyname(t->root, s);
 }
 
 struct spr_node *spr_treesearch( struct spr_tree *t, const struct spr_node *query )
 {
-// TODO: search the node list
-	return spr_search(t->root, query);
+	struct spr_node *p, *array = t->nodelist[0];
+	for( p=array ; p < array+t->nodes && p != query ; p++ );
+	return p;
+//	return spr_search(t->root, query);
 }
 
 /* can't count on tree being sorted by name, so search it all */
@@ -94,22 +98,22 @@ int spr_isancestor( const struct spr_node *ancestor, const struct spr_node *p )
 	return FALSE;
 }
 
-/* reattach src (and it's parent node,
- * which would otherwise have to be deleted)
- * to the branch between dest and it's parent.
+
+/******** dospr: the real SPR function at the heart of the library ********/
+/* reattach src (and it's parent node, which would otherwise have to be deleted)
+ * to the branch between dest and its parent.  This makes src and dest siblings.
  * return success/fail
+ * Only SPRs which would actually break the tree are rejected here.  see spr()
  */
 static int dospr( struct spr_node *src, struct spr_node *dest )
 {
 	// FIXME: use the callback
 	struct spr_node *sp = src->parent, *dp = dest->parent;
 
-	// check for impossible SPRs; the wrapper catches non-useful ones
-	// (which are useful when undoing a previous SPR).
-	
-//	if (!sp || spr_isancestor(sp, dest)) return FALSE;
-	if (!sp) return FALSE;  // can't SPR the root
-	if (spr_isancestor(src, dest)) return FALSE;
+	if (spr_isancestor(src, dest) || // dest inside the subtree being pruned
+	    dest == sp)		// src parent goes with src, so can't be dest
+		return FALSE;
+	assert( src->parent != NULL /* isancestor should have caught src==root */ );
 
 	// This can result in dest->parent having two pointers to sp,
 	// resulting in getting the mirror image unspr, for example with cox2
@@ -132,52 +136,46 @@ static int dospr( struct spr_node *src, struct spr_node *dest )
 }
 
 
-int spr_unspr( struct spr_tree *tree )
-{
-	return spr( tree, NULL, NULL );
-}
-
-
-/* A wrapper that returns the tree to its original topology if needed, then
- * returns TRUE if the requested SPR was done, else FALSE.  (except when
- * src=dest=NULL, return TRUE if the tree was modified back to the original.)
- * some of the allowed-spr checks are duplicated in dospr().
+/* A wrapper around dospr():
+ * * return the tree to its original topology if needed.
+ * * rejects some useless SPRs (e.g. that don't change the topology)
+ * * save info so unspr can get back to original topology.
+ * * returns TRUE if dospr() succeeds and the tree is modified.
  */
 int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 {
 	int tmp, unspr_success=FALSE;
 
 	if (tree->unspr_dest){	// back to starting tree
-		unspr_success = dospr( tree->unspr_src, tree->unspr_dest );
-		printf("  unspr back to: "); //DEBUG
-		newickprint( spr_findroot(tree->root) );
+		unspr_success = dospr(tree->unspr_src, tree->unspr_dest);
+		if (spr_debug>=2){
+			fputs("  unspr back to: ", stderr);
+			newickprint(spr_findroot(tree->root), stderr);
+		}
 		assert( unspr_success );
 		tree->unspr_dest = NULL;
 	}
-	if (!src && !dest && unspr_success) return TRUE;
+	if (!src && !dest && unspr_success) return unspr_success;
 
-	if ( !(src->parent) || !(dest->parent) ||
-	     src->parent == dest->parent ||  // don't switch siblings
-	     src->parent == dest
-	     // ancestor(dest,src) is ok, though
-		){
+	// We used to exclude dest==root, but it doesn't break unspr or anything.
+	// It always has the same (unrooted) topology as two other trees that spr_next_spr finds.
+	// (the root node is the "extra" node, for unrooted vs. rooted tree) */
+	if ( !src || !dest ||	// protect against silly callers
+	     spr_isancestor(src, dest) || // does this really always catch !(src->parent)?
+	     src->parent == dest->parent)  // don't switch siblings
 		return FALSE;
-	}
-	/* src or dest == root is not useful because we actually deal
-	 * with internal parent nodes, which the root doesn't have. */
 
 	tree->unspr_src = src;
-	tree->unspr_dest = isrightchild(src) ? 
-		src->parent->left : src->parent->right; // sibling of src.
+	tree->unspr_dest = sibling(src);
 
-	tmp = dospr( src, dest );
+	tmp = dospr(src, dest);
 	if (tmp){
-		if (tree->root->parent){
-			tree->root = spr_findroot( dest );
-			fputs("allspr: tree has new root!\n", stderr);
+		if (!isroot(tree->root)){
+			tree->root = spr_findroot(dest);
+			if (spr_debug>=2) fputs("allspr: tree has new root!\n", stderr);
 		}
-		// DEBUG
-		printf( "  did spr %s -> %s\n", src->data->name, dest->data->name);
+		if (spr_debug>=1)
+			printf("  did spr %s -> %s\n", src->data->name, dest->data->name);
 	}else
 		tree->unspr_dest = NULL;
 
