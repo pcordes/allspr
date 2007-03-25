@@ -13,6 +13,10 @@ CFLAGS = -Wall -g -O3
 
 # -Wall -O3 -ffast-math -march=athlon-xp -funroll-loops -fomit-frame-pointer
 # debug: -fno-inline-functions
+
+# with Sun's compiler:
+# make CC='c99 -fast -xarch=native' CFLAGS=''
+
 LOADLIBES = -lm
 #LOADLIBES += -lefence
 
