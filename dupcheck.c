@@ -140,9 +140,7 @@ struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root ){
 	int n = tree->nodes, tmp;
 
 	assert( tree->nodes == spr_countnodes(root) );
-
 	A = xmalloc(n*sizeof(*A));
-
 	tmp = spr_copytoarray(A, root);
 	assert( n == tmp /* copytoarray had better copy the right number of nodes */ );
 

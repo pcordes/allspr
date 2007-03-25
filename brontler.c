@@ -34,17 +34,19 @@ struct nodedata{
 // globals
 int debug = 0;
 
+// TODO: option to control printing the starting tree?
 const char *usage=
 "usage: brontler [options] tree [src dest]\n"
 " brontler '(((a,b),(d,(e,f))),(c,d))' dump all unique SPRs\n"
 " brontler '(a,(c,b))' a c\t- SPR from a to c.  (internal nodes have capital letter names...)\n"
 "options: -h, -V: help and version\n"
 "\t-t tree\tread tree from a file instead of the command line\n"
-"\t-d number\tdebug level (default 0)\n"
-"\t-D number\tallspr library debug level (default 0)\n"
+"\t-d number\tdebug/verbosity level (default 0)\n"
+"\t-D number\tallspr library debug/verbosity level (default 0)\n"
 "\t-m mode\t0: just exhaust SPRs from the starting tree. (default)\n"
 "\t  1: exhaust SPRs from the starting tree, then start from the last SPR.\n"
 "\t  2: take the SPRed topology as a new start point 50% of the time.\n"
+"\t-T n\twhen mode>0, don't start a new tree after n unique topologies. (default 0, unlimited)\n"
 "\tboth non-zero modes only stop when no non-duplicate SPRs can be done.\n";
 
 const char *version="brontler v2.0. allspr library version " ALLSPR_VERSION "\n";
@@ -200,9 +202,10 @@ char *readfile(char *file)
 // This is where the action is:
 // enumerate the possible SPRs, one per line with various counters.
 // see usage string for meaning of mode.
-static int allspr(struct spr_tree *sprtree, int spr_mode)
+static int allspr(struct spr_tree *sprtree, int spr_mode, long topolimit)
 {
 	int treeiter, bestspr, treecount, sprnum;
+	int oldtreecount=0, tmp;
 	printf ("tree: taxa: %d, nodes: %d, possible SPRs <= %d\n",
 		sprtree->taxa, sprtree->nodes, sprtree->lcg.m );
 	// tree->lcg.state = 16;
@@ -210,14 +213,25 @@ static int allspr(struct spr_tree *sprtree, int spr_mode)
 	for(treecount=0, treeiter=1 ; ; treeiter++){
 		bestspr = 0;
 		while ( (sprnum = spr_next_spr(sprtree)) ){
-			if (debug>=2) treeprint(sprtree->root, stderr);
-			printf("%d: tree %d.%d: ", ++treecount, treeiter, sprnum);
-			newickprint(sprtree->root, stdout);
+			++treecount;
+			if (debug>=4) treeprint(sprtree->root, stderr);
+			if (debug != 3){ // in case you want just #trees/iteration
+				printf("%d: tree %d.%d: ", treecount, treeiter, sprnum);
+				newickprint(sprtree->root, stdout);
+			}
 			bestspr = sprnum;
 			if (spr_mode==2 && rand()%2) break;
 		}
-		if(spr_mode > 0 && bestspr) spr_apply_sprnum(sprtree, bestspr);
-		else break;
+
+		if (debug>=1){
+			printf("tree iteration %d gave %d new trees\n", treeiter, treecount-oldtreecount);
+			oldtreecount = treecount;
+		}
+
+		if (spr_mode > 0 && treecount < topolimit && bestspr){
+			tmp = spr_apply_sprnum(sprtree, bestspr);
+			assert ( tmp /* spr_apply_sprnum should always succeed */ );
+		}else break;
 	}
 	return TRUE;
 }
@@ -227,13 +241,14 @@ int main (int argc, char *argv[])
 	struct spr_tree *sprtree;
 	struct spr_node *root, *src, *dest;
 	char *treestring = NULL;
-	int spr_mode=0, i, tmp;
+	int spr_mode=0, topolimit=0;
+	int i, tmp, retval=0;
 	
 //	srand( time(NULL) );
 	srand( 42 );
 
 	opterr = 1; // make getopt print specific error messages for us
-	while ((i = getopt (argc, argv, "hVD:d:m:t:")) != -1){
+	while ((i = getopt (argc, argv, "hVD:d:m:t:T:")) != -1){
 	  switch(i){
 	  case 'h': puts(usage);   return 0;
 	  case 'V': puts(version); return 0;
@@ -241,6 +256,7 @@ int main (int argc, char *argv[])
 	  case 'D': spr_setdebug(atoi(optarg)); break;
 	  case 'm': spr_mode=atoi(optarg); break;
 	  case 't': treestring=readfile(optarg); break;
+	  case 'T': topolimit=atoi(optarg); break;
 	  case '?':
 		  fputs("you need -h (help)\n", stderr);
 		  return 1;
@@ -265,7 +281,7 @@ int main (int argc, char *argv[])
 	assert( root == spr_findroot(root) );
 	if (debug>=1){
 		puts("starting tree:");
-		treeprint(root, stderr);
+		if (debug>=4) treeprint(root, stderr);
 		newickprint(root, stdout);
 	}
 
@@ -275,17 +291,18 @@ int main (int argc, char *argv[])
 	}
 
 	switch (argc - optind){
-	case 0: allspr(sprtree, spr_mode); break;
+	case 0: retval = !allspr(sprtree, spr_mode, topolimit); break;
 	case 2:
 		src  = spr_treesearchbyname(sprtree, argv[argc-optind]);
 		dest = spr_treesearchbyname(sprtree, argv[argc-optind+1]);
 		if (debug>=2) puts("doing SPR...");
-		spr(sprtree, src, dest);
+		tmp = spr(sprtree, src, dest);
 		if (debug>=1){
 			puts(tmp ? "SPR succeeded" : "SPR failed");
-			treeprint(sprtree->root, stderr);
+			if (debug>=4) treeprint(sprtree->root, stderr);
 		}
 		newickprint(sprtree->root, stdout);
+		retval = !tmp;
 		break;
 	default:
 		fputs("wrong number of non-option arguments. you need -h (help)\n", stderr);
@@ -295,5 +312,5 @@ int main (int argc, char *argv[])
 	spr_statefree(sprtree);
 	spr_treefree(root, TRUE);
 	spr_staticfree();
-	return 0;
+	return retval;
 }
