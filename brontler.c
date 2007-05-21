@@ -229,7 +229,7 @@ static int allspr(struct spr_tree *sprtree, int spr_mode, long topolimit)
 			oldtreecount = treecount;
 		}
 
-		if (spr_mode > 0 && treecount < topolimit && bestspr){
+		if (spr_mode > 0 && (!topolimit || treecount < topolimit) && bestspr){
 			tmp = spr_apply_sprnum(sprtree, bestspr);
 			assert ( tmp /* spr_apply_sprnum should always succeed */ );
 		}else break;
