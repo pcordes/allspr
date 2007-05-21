@@ -114,10 +114,18 @@ struct spr_node *parsenewick( char *str, int *len )
 		node->right->parent = node;
 		*len += tmp;
 
-		if (')' != str[*len])
-			fprintf(stderr,"no close paren following right subtree: \"%s\"\n", str+*len);
-		else
-			++*len;
+		// handle unrooted trees by creating a root node here.
+		if(',' == str[*len]){
+			struct spr_node *newroot = newnode("root");
+			newroot->left = node; node->parent = newroot;
+			newroot->right = parsenewick(str + ++*len, &tmp);
+			*len += tmp;
+			newroot->right->parent = newroot;
+			node = newroot;
+		}
+
+		if(')' == str[*len]) ++*len;
+		else fprintf(stderr,"no close paren following right subtree: \"%s\"\n", str+*len);
 
 	}else if (strspn(str, " -_.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")){
 		// leaf node
@@ -134,14 +142,8 @@ struct spr_node *parsenewick( char *str, int *len )
 		return NULL;
 	}
 
-	// internal and leaf nodes can have branch lengths
-#ifdef SPR_PROCOV_DATA
-	float dummy;
-	if (sscanf(str+*len, " : %f %n", &dummy, &tmp))
-#else
-	if (sscanf(str+*len, " : %f %n", &data->bl, &tmp))
-#endif // procov
-		*len += tmp;
+	// internal and leaf nodes can have branch lengths, or bootstrap:branchlen
+	*len += strspn(str+*len, "0123456789.: \f\n\r\t\v");
 
 	return node;
 }
