@@ -33,7 +33,7 @@ struct nodedata{
 #include <spr.h>
 
 // globals
-int debug = 0;
+int debug = 1;
 
 // TODO: option to control printing the starting tree?
 const char *usage=
@@ -215,7 +215,7 @@ static int allspr(struct spr_tree *sprtree, int spr_mode, long topolimit)
 		bestspr = 0;
 		while ( (sprnum = spr_next_spr(sprtree)) ){
 			++treecount;
-			if (debug>=4) treeprint(sprtree->root, stderr);
+			if (debug>=4) spr_treedump(sprtree, stderr);
 			if (debug != 3){ // in case you want just #trees/iteration
 				printf("%d: tree %d.%d: ", treecount, treeiter, sprnum);
 				newickprint(sprtree->root, stdout);
@@ -300,7 +300,7 @@ int main (int argc, char *argv[])
 		tmp = spr(sprtree, src, dest);
 		if (debug>=1){
 			puts(tmp ? "SPR succeeded" : "SPR failed");
-			if (debug>=4) treeprint(sprtree->root, stderr);
+			if (debug>=4) spr_treedump(sprtree, stderr);
 		}
 		newickprint(sprtree->root, stdout);
 		retval = !tmp;

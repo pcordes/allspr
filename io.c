@@ -103,3 +103,16 @@ void treeprint(const struct spr_node *p, FILE *stream)
 	}
 	if (p->right) treeprint(p->right, stream);
 }
+
+
+void spr_treedump(const struct spr_tree *t, FILE *stream)
+{
+	for(int i=0 ; i<t->nodes ; i++){
+		struct spr_node *p = t->nodelist[i];
+		fprintf(stream, "%s: %12s\t%12s\t%12s\n", p->data->name,
+			(p->left)?p->left->data->name:"l=NULL",
+			(p->right)?p->right->data->name:"r=NULL",
+			(p->parent)?p->parent->data->name:"p=NULL");
+	}
+	putc('\n', stream);
+}

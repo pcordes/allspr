@@ -159,7 +159,8 @@ struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root );
 char *newick( const struct spr_node *subtree ); // return a malloc()ed string. no bl
 #ifdef BUFSIZ // proxy for stdio.h.  skip these if we don't have FILE.
 void newickprint(const struct spr_node *subtree, FILE *stream);
-void treeprint(const struct spr_node *p, FILE *stream); // in-order traversal printing to stdout
+void treeprint(const struct spr_node *p, FILE *stream); // in-order traversal
+void spr_treedump(const struct spr_tree *t, FILE *stream); // dump t->nodelist with names for all pointers
 #endif // stdio
 
 
