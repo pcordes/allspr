@@ -38,7 +38,7 @@ int debug = 0;
 // TODO: option to control printing the starting tree?
 const char *usage=
 "usage: brontler [options] tree [src dest]\n"
-" brontler '(((a,b),(d,(e,f))),(c,d))' dump all unique SPRs\n"
+" brontler '(((a,b),(g,(e,f))),(c,d))' dump all unique SPRs\n"
 " brontler '(a,(c,b))' a c\t- SPR from a to c.  (internal nodes have capital letter names...)\n"
 "options: -h, -V: help and version\n"
 "\t-t tree\tread tree from a file instead of the command line\n"

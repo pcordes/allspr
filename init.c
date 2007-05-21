@@ -133,9 +133,8 @@ spr_init( struct spr_node *root, void (*callback)(struct spr_node *), int dup )
 
  // set up and initialize an LCG that will cover all source/dest pairs
 	findlcg( &tree->lcg, nnodes*(nnodes-1) );
-
 	tree->callback = callback;
-	tree->unspr_dest = NULL;
+	spr_apply(tree);	// basically an init function
 
 	if(dup) tree->dups = NULL;
 	else{

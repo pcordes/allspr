@@ -148,14 +148,15 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 
 	if (tree->unspr_dest){	// back to starting tree
 		unspr_success = dospr(tree->unspr_src, tree->unspr_dest);
+		tree->root = spr_findroot(tree->unspr_dest);
 		if (spr_debug>=2){
 			fputs("  unspr back to: ", stderr);
-			newickprint(spr_findroot(tree->root), stderr);
+			newickprint(tree->root, stderr);
 		}
 		assert( unspr_success );
 		tree->unspr_dest = NULL;
 	}
-	if (!src && !dest && unspr_success) return unspr_success;
+	if (!src && !dest) return unspr_success;
 
 	// We used to exclude dest==root, but it doesn't break unspr or anything.
 	// It always has the same (unrooted) topology as two other trees that spr_next_spr finds.
@@ -206,7 +207,7 @@ int spr_next_spr( struct spr_tree *tree )
 	else			return 1 + sprnum;
 }
 
-/* move to a new tree */
+/* move to a new tree.  also called from spr_init() */
 void spr_apply(struct spr_tree *tree)
 {
 	tree->unspr_dest = tree->unspr_src = NULL;
