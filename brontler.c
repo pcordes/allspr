@@ -282,9 +282,9 @@ int main (int argc, char *argv[])
 	// parse tree and print it out
 	root = parsenewick(treestring, &tmp); // assert (tmp == strlen)...
 	assert( root == spr_findroot(root) );
-	if (debug>=1){
+	if (debug>=2){
 		puts("starting tree:");
-		if (debug>=4) treeprint(root, stderr);
+		if (debug>=5) treeprint(root, stderr);
 		newickprint(root, stdout);
 	}
 
@@ -292,6 +292,7 @@ int main (int argc, char *argv[])
 		fputs("couldn't init libspr\n", stderr);
 		return 2;
 	}
+	if (debug>=6) spr_treedump(sprtree, stderr);
 
 	switch (argc - optind){
 	case 0: retval = !allspr(sprtree, spr_mode, topolimit); break;
