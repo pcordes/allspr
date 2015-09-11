@@ -3,61 +3,52 @@
  * license: GPLv2 or later
  */
 
+#include <stddef.h>  // size_t
+
 #define ALLSPR_VERSION "1.3"
 
-#ifdef SPR_PRIVATE // intended for internal library use.
-// this has to be up here near the beginning of spr.h
+/******** declaration of the node payload pointer ******/
+/* The payload is opaque, and not copied around or allocated by allspr.
+ * The library is compiled without even knowing its size.
 
-// maybe TODO: have procov compile us with -D..., so the allspr code
-// builds stand-alone by default.  Or just take out the printing/debugging
-// stuff so the ->data pointer can be opaque to allspr.
-#  define SPR_PROCOV_DATA
-#  ifdef SPR_PROCOV_DATA
-#    define nom name
-#    include "../procov/mynhmlg.h"
-#    define SPR_NODE_DATAPTR_TYPE struct noeud
-#  else
-#    define SPR_NODE_DATAPTR_TYPE struct spr_nodename
-#  endif
-#endif // SPR_PRIVATE
+** Software that uses the library should define SPR_NODE_DATAPTR_TYPE as struct whatever, **
+ *   where the first member is a char*.  Do *not* define SPR_PRIVATE.
+ *
+ * Macros are used instead of a typedef so we can check if it's defined already.
+ */
 
-// make sure we always have this defined even without SPR_PRIVATE.
+// procov can compile allspr with -DSPR_PROCOV_DATA, but this isn't the default.
+//#  define SPR_PROCOV_DATA
+#ifdef SPR_PROCOV_DATA
+//  This will only work if the library was also compiled this way,
+//  because noeud::nom is a fixed-size array, rather than a pointer.
+//  Similarly, if the library was compiled with SPR_PROCOV_DATA, you need this in code that uses it
+#  define nom name   // nhml is French.  rename the structure member to English.
+#  include "procov/mynhmlg.h"  // get mynhmlg.h and portab.h from http://www.mathstat.dal.ca/~hcwang/procov.html
+//#undef nom
+#  define SPR_NODE_DATAPTR_TYPE struct noeud
+#endif // PROCOV
+
+
 #ifndef SPR_NODE_DATAPTR_TYPE
-#  define SPR_NODE_DATAPTR_TYPE void
-#endif
-
-struct spr_nodename{ char *name; };
-
-#ifndef TRUE
-#define TRUE (1)
-#define FALSE (0)
-#endif
-
-// backward compat for old gcc, from gcc info page.
-#if __STDC_VERSION__ < 199901L
-# if __GNUC__ >= 2
-#  define __func__ __FUNCTION__
-# else
-#  define __func__ "<unknown>"
-# endif
-#endif
-
-#ifndef max
-#ifdef __GNUC__
-#define max(a,b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a > _b ? _a : _b; })
-#define min(a,b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a < _b ? _a : _b; })
-#else
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#endif
-#endif
+#  ifdef SPR_PRIVATE
+     struct spr_nodename{ char *name; };  // semi-opaque
+#    define SPR_NODE_DATAPTR_TYPE struct spr_nodename
+ /* spr_treesearchbyname, treeprint, and error messages in other functions use this,
+  * and will segfault if they're called with payloads that don't start with a char*.
+  */
+#  else // not SPR_PRIVATE
+#    warning no definition for SPR_NODE_DATAPTR_TYPE, making it opaque
+#    define SPR_NODE_DATAPTR_TYPE void
+#  endif // SPR_PRIVATE
+#endif // SPR_NODE_DATAPTR_TYPE
 
 
-/* libspr requires that there be a char * stored at the address pointed to by 
+/* liballspr requires that there be a char * stored at the address pointed to by
  * data.  This can be the first member of a custom-defined structure,
- * of course.  The char * is used as the name of the node. 
- * If you compile a version of the library with spr_private.h including
- * your own headers, you can have the ->name structure member anywhere.
+ * of course.  The char * is used as the name of the node.
+ * If you compile a version of the library with SPR_PRIVATE taking your definition,
+ * headers, you can have the ->name structure member anywhere, and it can be a pointer or array.
 
  * internal nodes in phylogenetic trees only exist with two children,
  * so left!=NULL implies right!=NULL.  The root node has parent == NULL
@@ -109,7 +100,7 @@ struct spr_tree{
 /********** Public Functions ***************/
 
 // hopefully this doesn't cause too much of a problem,
-// since progs that link libspr can just use these
+// since progs that link libspr can just use these definitions
 void *xmalloc (size_t s);  // perror and exit on error
 void *xcalloc (size_t n, size_t s);
 void *xrealloc (void *p, size_t n);
@@ -158,7 +149,7 @@ struct spr_node *spr_find_dup( struct spr_tree *tree, struct spr_node *root );
 
 /******** IO ********/
 char *newick( const struct spr_node *subtree ); // return a malloc()ed string. no bl
-#ifdef BUFSIZ // proxy for stdio.h.  skip these if we don't have FILE.
+#ifdef BUFSIZ // detect stdio.h.  skip these if we don't have FILE.
 void newickprint(const struct spr_node *subtree, FILE *stream);
 void treeprint(const struct spr_node *p, FILE *stream); // in-order traversal
 void spr_treedump(const struct spr_tree *t, FILE *stream); // dump t->nodelist with names for all pointers
@@ -204,6 +195,33 @@ static inline struct spr_node *spr_newnode(struct spr_node *left, struct spr_nod
 	return p;
 }
 
+
+
+/***************** convenience defs ************/
+
+#ifndef TRUE
+#define TRUE (1)
+#define FALSE (0)
+#endif
+
+// backward compat for old gcc, from gcc info page.
+#if __STDC_VERSION__ < 199901L
+# if __GNUC__ >= 2
+#  define __func__ __FUNCTION__
+# else
+#  define __func__ "<unknown>"
+# endif
+#endif
+
+#ifndef max
+#ifdef __GNUC__
+#define max(a,b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a > _b ? _a : _b; })
+#define min(a,b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a < _b ? _a : _b; })
+#else
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#endif
 
 #ifdef SPR_PRIVATE // intended for internal library use.  might be useful generally
 unsigned int lcg(struct lcg *lcgp);

@@ -15,21 +15,24 @@
 #include <assert.h>
 
 
+// This frontend can work with a library that was compiled for procov-style payloads
+// procov's data->name field is an array in the struct, not a char *.
+// See the #ifdef SPR_PROCOV_DATA blocks below for (strcpy instead of strdup) and so on
+#ifndef SPR_PROCOV_DATA
+
+// example payload that we use in the non-procov case.  Only name is actually used.
 struct nodedata{
 	char *name;
 	int dirty;		/* needs likelihood update after SPR? */
 	float bl;		/* branch length to parent */
 	float (*dna)[4];	/* 4xn matrix */
 };
+/* request that spr_node::data be declared as a pointer to our actual payload type,
+ * instead of void *, so we don't have to cast all the time */
+#define SPR_NODE_DATAPTR_TYPE struct nodedata
+#endif
 
-/* request that spr_node.data be declared as a pointer to the struct
- * that we will actually store in it, instead of a void *
- * so we don't have to cast all the time */
-//#define SPR_NODE_DATAPTR_TYPE struct nodedata
-// actually just use whatever the library was compiled with
-// procov's data->name field is an array in the struct, not a char *.
-// this necessitates some alternate code (strcpy instead of strdup)... see the #ifs below
-#define SPR_PRIVATE
+//#define SPR_PRIVATE  // possibly useful for debugging, to get prototypes for more internal functions
 #include <spr.h>
 
 // globals
@@ -57,15 +60,16 @@ const char *version="brontler v2.0. allspr library version " ALLSPR_VERSION "\n"
 /* a "constructor".  returns a malloc()ed spr_node */
 static struct spr_node *newnode(char *name)
 {
+	// construct the payload for a tree node.
 	SPR_NODE_DATAPTR_TYPE *d = xcalloc(1, sizeof(*d));
 #ifdef SPR_PROCOV_DATA
 	if (name) strcpy (d->name, name);
 #else
 	d->name=name;
-	d->dirty=0; d->bl=0; d->dna=NULL;
+	// d->dirty=0; d->bl=0; d->dna=NULL;  // calloc did this for us.
 #endif // procov
 
-	return spr_newnode( NULL, NULL, NULL, d);
+	return spr_newnode( NULL, NULL, NULL, d); // and construct the tree node pointing to it.
 }
 
 
@@ -133,7 +137,9 @@ struct spr_node *parsenewick( char *str, int *len )
 #ifdef SPR_PROCOV_DATA
 		if ( 1 > sscanf( str, " %[^][)(:;, \f\n\r\t\v] %n", data->name, len))
 #else
-		if ( 1 > sscanf( str, " %a[^][)(:;, \f\n\r\t\v] %n", &data->name, len))
+		// dynamically alloc space for the string, and point data->name at it.
+		// GNU used to use %a for this, but C99 made %a = %f.  POSIX.1-2008 specifies %m for this.
+		if ( 1 > sscanf( str, " %m[^][)(:;, \f\n\r\t\v] %n", &data->name, len))
 #endif // procov
 			fprintf(stderr, "bad newick element: \"%s\"\n",str);
 	}else{ // not a node!?

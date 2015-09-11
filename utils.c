@@ -6,6 +6,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#define SPR_PRIVATE // spr.h warns without this or SPR_NODE_DATAPTR_TYPE defined
 #include "spr.h"
 
 void *xcalloc (size_t n, size_t s)
