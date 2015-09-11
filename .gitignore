@@ -1,0 +1,5 @@
+brontler
+*.a
+*.exe
+*~
+procov/
