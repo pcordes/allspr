@@ -137,10 +137,14 @@ static int dospr( struct spr_node *src, struct spr_node *dest )
 
 
 /* A wrapper around dospr():
- * * return the tree to its original topology if needed.
- * * rejects some useless SPRs (e.g. that don't change the topology)
- * * save info so unspr can get back to original topology.
- * * returns TRUE if dospr() succeeds and the tree is modified.
+ * return the tree to its original topology if needed.
+ * rejects some useless SPRs (e.g. that don't change the topology)
+ * save info so unspr can get back to original topology.
+ * returns TRUE if dospr() succeeds and the tree is modified.
+ *
+ * It's probably easy to make a mess if you call this directly while root
+ * moving is going on. e.g. tree->lastspr is checked for some things.
+ * Root moving was hacked in as an afterthought.
  */
 int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 {
@@ -184,27 +188,120 @@ int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest )
 }
 
 
+/* sort out a tree where nodes' parent pointers are pointing to nodes that are actually their children.
+ * borrowed from procov */
+static void spr_organize_tree(struct spr_node *from, struct spr_node *nd)
+{
+	struct spr_node *p;
+
+	if(isleaf(nd)) return;
+	if(from==nd->left){  p=nd->parent; nd->parent=nd->left;  nd->left =p; }
+	if(from==nd->right){ p=nd->parent; nd->parent=nd->right; nd->right=p; }
+	spr_organize_tree(nd, nd->left);
+	spr_organize_tree(nd, nd->right);
+}
+
+// insert the root along the branch connecting child to its parent
+static void placeroot(struct spr_tree *tree, struct spr_node *child)
+{
+	if(spr_debug>=5){ spr_treedump(tree, stderr); }
+	struct spr_node *r = tree->root;
+	if(!tree->rootsave1){ // only update undo info if we were at the original tree
+		tree->rootsave1 = r->left;
+		tree->rootsave2 = r->right;
+	}
+	r->left ->parent = r->right;  // extract root from old location
+	r->right->parent = r->left;
+
+	r->right = child->parent;
+	r->left = child;
+	*meinparent(child) = child->parent = r;
+	// root is in the tree, but branches are pointing strange directions.
+	if(spr_debug>=5){ spr_treedump(tree, stderr);	putc('\n', stderr); }
+	spr_organize_tree(NULL, r);
+}
+
+// return the tree to it's original state
+static void unrootmove(struct spr_tree *tree)
+{
+	struct spr_node *root = tree->root, *s1 = tree->rootsave1, *s2 = tree->rootsave2;
+	if(!s1) return;
+	if(s1->parent == root && s2->parent == root){ if(spr_debug>=3)fprintf(stderr, "allspr: something weird probably happened, %s\n", __func__); return; }
+
+	spr_unspr(tree);
+	if(s1->parent == s2) placeroot(tree, s1);
+	else if(s2->parent == s1) placeroot(tree, s2);
+	else assert( FALSE /* two children of old root aren't connected */ );
+	tree->rootsave1 = tree->rootsave2 = NULL;
+}
+
+// decode an SPR number and do it.
+int spr_sprnum(struct spr_tree *tree, int coded_sprnum)
+{
+	int tmp, sprnum;
+	if(!coded_sprnum) return FALSE;
+	else if(coded_sprnum>0){ // classic rooted-tree SPRs not spanning the root
+		sprnum = coded_sprnum-1;
+		if(sprnum > tree->lcg.m) return FALSE;
+		if(tree->lastspr < 0) unrootmove(tree);
+		tmp = spr(tree, tree->nodelist[ sprmap(sprnum, 0) ],
+				tree->nodelist[ sprmap(sprnum, 1) ]);
+		return tree->lastspr = tmp ? coded_sprnum : 0;
+	}else{ // root moving
+		sprnum = (-coded_sprnum)-1;
+		int rootpos = sprnum / (tree->nodes*tree->nodes);
+		if(rootpos >= tree->nodes) return FALSE;
+
+		spr_unspr(tree);
+//		unrootmove(tree);
+		struct spr_node *r = tree->root, *c = tree->nodelist[rootpos];
+//		if(isleaf(c) || r==c) return FALSE;
+		if(r==c) return FALSE; //ROOTMOVE ONLY
+		if(c->parent != r) placeroot(tree, c); // don't repeat ourselves
+
+		sprnum = sprnum % (tree->nodes*tree->nodes);
+		tmp = sprnum % tree->nodes; sprnum /= tree->nodes;
+		tmp = spr(tree, tree->nodelist[tmp], tree->nodelist[sprnum]);
+		tree->lastspr = coded_sprnum; // root is out of place whether we succeed or not
+		return tmp ? coded_sprnum : 0;
+	}
+}
+
+
 /****************** SPR iteration ******************/
 
 /* return 0 for all done, else 1+SPR number.  Zero makes a nicer sentinel than
  * UINT_MAX for users of the library, but beware of the offset when debugging.
+ *
+ * root moving: loop through normal SPRs, then return negative sprnums.
  */
 int spr_next_spr( struct spr_tree *tree )
 {
-	int tmp;
+	int tmp = FALSE;
 	unsigned sprnum;
 
-	do{  // try SPRs until we find a legal one, or loop to beginning
-		sprnum = lcg( &tree->lcg );
-		if (UINT_MAX == sprnum) break;
-		tmp = spr(tree, tree->nodelist[ sprmap(sprnum, 0) ],
-			        tree->nodelist[ sprmap(sprnum, 1) ]);
+//	tree->rootmove=1; //ROOTMOVE ONLY
+	if(tree->rootmove == 0){
+		do{  // try SPRs until we find a legal one, or loop to beginning
+			sprnum = lcg( &tree->lcg );
+			if(UINT_MAX == sprnum) break;
+			tmp = spr_sprnum(tree, sprnum+1);
+			if (tmp && tree->dups)
+				tmp = spr_add_dup(tree, tree->root);
+		}while(!tmp);
+		if(UINT_MAX != sprnum) return 1 + sprnum;
+	}
+#ifdef NO_ROOT_MOVING
+	return FALSE;
+#else
+	do{
+		if(tree->rootmove++ > (tree->nodes*tree->nodes*tree->nodes)) return FALSE;
+		tmp = spr_sprnum(tree, -(int)(tree->rootmove+1));
 		if (tmp && tree->dups)
 			tmp = spr_add_dup(tree, tree->root);
-	}while( !tmp );
-
-	if (UINT_MAX == sprnum) return 0;
-	else			return 1 + sprnum;
+	}while(!tmp);
+	return tree->lastspr = -(int)(tree->rootmove+1);
+#endif
 }
 
 /* move to a new tree.  also called from spr_init() */
@@ -212,14 +309,14 @@ void spr_apply(struct spr_tree *tree)
 {
 	tree->unspr_dest = tree->unspr_src = NULL;
 	tree->lcg.startstate = UINT_MAX;
+	tree->rootmove = tree->lastspr = 0;
+	tree->rootsave1 = tree->rootsave2 = NULL;
 }
 
 int spr_apply_sprnum(struct spr_tree *tree, int sprnum)
 {
 	int tmp;
-	sprnum--; // spr_next_spr offsets spr number by one, so correct for that.
-	tmp = spr(tree, tree->nodelist[ sprmap(sprnum, 0) ],
-			tree->nodelist[ sprmap(sprnum, 1) ]);
-	spr_apply(tree);
+	if((tmp = spr_sprnum(tree, sprnum)))
+		spr_apply(tree);
 	return tmp;
 }

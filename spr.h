@@ -3,7 +3,7 @@
  * license: GPLv2 or later
  */
 
-#define ALLSPR_VERSION "1.2"
+#define ALLSPR_VERSION "1.3"
 
 #ifdef SPR_PRIVATE // intended for internal library use.
 // this has to be up here near the beginning of spr.h
@@ -91,10 +91,12 @@ struct spr_tree{
 	struct spr_node *unspr_dest;
 	struct spr_node *unspr_src;  // could be an index into nodelist
 	struct spr_duplist *dups;
-
+	void (*callback)(struct spr_node *);  // not implemented
+	struct spr_node *rootsave1, *rootsave2;
+	unsigned int rootmove;
 	struct lcg lcg;
 
-	void (*callback)(struct spr_node *);  // not implemented
+	int lastspr;
 	int nodes;
 	int taxa;
 };
@@ -135,16 +137,15 @@ void spr_treefree( struct spr_node *tree, int freenodedata );
  * Will be undone by the next spr call, because unspr info is saved.
  */
 int spr( struct spr_tree *tree, struct spr_node *src, struct spr_node *dest );
-
-/* return 0 for all done, else a positive SPR number */
+int spr_sprnum(struct spr_tree *tree, int sprnum);
+/* return 0 for all done, else a positive or negative SPR number */
 int spr_next_spr( struct spr_tree *tree );
 /* return the tree to its original topology */
 static inline int spr_unspr(struct spr_tree *tree){ return spr(tree, NULL, NULL); }
-// do a permanent spr: don't save unspr info.  preserves duplicate checking list.
+// make last SPR permanent spr: don't save unspr info.  preserves duplicate checking list.
 // resets the spr_next_spr() iterator.
-int spr_apply_sprnum(struct spr_tree *tree, int sprnum);
-// keep current topology, whatever it is.
 void spr_apply(struct spr_tree *tree);
+int spr_apply_sprnum(struct spr_tree *tree, int sprnum);
 
 /******** Duplicate checking ********/
 /* add a tree topology to the dup list (copies the tree).
